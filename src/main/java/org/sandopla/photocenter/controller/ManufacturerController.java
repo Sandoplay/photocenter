@@ -1,9 +1,8 @@
 package org.sandopla.photocenter.controller;
 
-import org.sandopla.photocenter.Manufacturer;
+import org.sandopla.photocenter.model.Manufacturer;
 import org.sandopla.photocenter.service.ManufacturerService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;

@@ -1,6 +1,7 @@
 package org.sandopla.photocenter.controller;
 
-import org.sandopla.photocenter.Order;
+import org.sandopla.photocenter.model.Order;
+import org.sandopla.photocenter.model.OrderDetail;
 import org.sandopla.photocenter.service.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -19,9 +20,10 @@ public class OrderController {
         this.orderService = orderService;
     }
 
-    @GetMapping
-    public List<Order> getAllOrders() {
-        return orderService.getAllOrders();
+    @PostMapping
+    public ResponseEntity<Order> createOrder(@RequestBody OrderWithDetails orderWithDetails) {
+        Order createdOrder = orderService.createOrder(orderWithDetails.getOrder(), orderWithDetails.getOrderDetails());
+        return ResponseEntity.ok(createdOrder);
     }
 
     @GetMapping("/{id}")
@@ -30,15 +32,14 @@ public class OrderController {
         return ResponseEntity.ok(order);
     }
 
-    @PostMapping
-    public ResponseEntity<Order> createOrder(@RequestBody Order order) {
-        Order newOrder = orderService.createOrder(order);
-        return ResponseEntity.ok(newOrder);
+    @GetMapping
+    public List<Order> getAllOrders() {
+        return orderService.getAllOrders();
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Order> updateOrder(@PathVariable Long id, @RequestBody Order orderDetails) {
-        Order updatedOrder = orderService.updateOrder(id, orderDetails);
+    public ResponseEntity<Order> updateOrder(@PathVariable Long id, @RequestBody OrderWithDetails orderWithDetails) {
+        Order updatedOrder = orderService.updateOrder(id, orderWithDetails.getOrder(), orderWithDetails.getOrderDetails());
         return ResponseEntity.ok(updatedOrder);
     }
 
@@ -46,5 +47,27 @@ public class OrderController {
     public ResponseEntity<Void> deleteOrder(@PathVariable Long id) {
         orderService.deleteOrder(id);
         return ResponseEntity.ok().build();
+    }
+}
+
+class OrderWithDetails {
+    private Order order;
+    private List<OrderDetail> orderDetails;
+
+    // Getters and setters
+    public Order getOrder() {
+        return order;
+    }
+
+    public void setOrder(Order order) {
+        this.order = order;
+    }
+
+    public List<OrderDetail> getOrderDetails() {
+        return orderDetails;
+    }
+
+    public void setOrderDetails(List<OrderDetail> orderDetails) {
+        this.orderDetails = orderDetails;
     }
 }

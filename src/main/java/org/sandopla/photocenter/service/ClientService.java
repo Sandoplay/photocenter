@@ -1,6 +1,7 @@
 package org.sandopla.photocenter.service;
 
-import org.sandopla.photocenter.Client;
+import jakarta.annotation.PostConstruct;
+import org.sandopla.photocenter.model.Client;
 import org.sandopla.photocenter.repository.ClientRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -15,6 +16,18 @@ public class ClientService {
     @Autowired
     public ClientService(ClientRepository clientRepository) {
         this.clientRepository = clientRepository;
+    }
+
+    @PostConstruct
+    public void initTestData() {
+        if (clientRepository.count() == 0) {
+            Client client = new Client();
+            client.setName("Test Client");
+            client.setPhoneNumber("1234567890");
+            client.setEmail("test@example.com");
+            client.setType(Client.ClientType.AMATEUR); // Змінено на AMATEUR
+            clientRepository.save(client);
+        }
     }
 
     public List<Client> getAllClients() {

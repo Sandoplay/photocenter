@@ -1,6 +1,6 @@
 package org.sandopla.photocenter.controller;
 
-import org.sandopla.photocenter.DiscountCard;
+import org.sandopla.photocenter.model.DiscountCard;
 import org.sandopla.photocenter.service.DiscountCardService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;

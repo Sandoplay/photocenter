@@ -1,6 +1,6 @@
 package org.sandopla.photocenter.service;
 
-import org.sandopla.photocenter.Delivery;
+import org.sandopla.photocenter.model.Delivery;
 import org.sandopla.photocenter.repository.DeliveryRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

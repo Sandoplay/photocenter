@@ -1,6 +1,6 @@
 package org.sandopla.photocenter.repository;
 
-import org.sandopla.photocenter.Product;
+import org.sandopla.photocenter.model.Product;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

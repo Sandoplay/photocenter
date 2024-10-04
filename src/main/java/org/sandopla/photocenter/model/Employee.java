@@ -1,4 +1,4 @@
-package org.sandopla.photocenter;
+package org.sandopla.photocenter.model;
 
 import jakarta.persistence.*;
 import lombok.Data;

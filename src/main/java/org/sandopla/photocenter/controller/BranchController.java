@@ -1,6 +1,6 @@
 package org.sandopla.photocenter.controller;
 
-import org.sandopla.photocenter.Branch;
+import org.sandopla.photocenter.model.Branch;
 import org.sandopla.photocenter.service.BranchService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;

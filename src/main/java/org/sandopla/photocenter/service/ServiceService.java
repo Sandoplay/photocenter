@@ -1,6 +1,6 @@
 package org.sandopla.photocenter.service;
 
-import org.sandopla.photocenter.Service;
+import org.sandopla.photocenter.model.Service;
 import org.sandopla.photocenter.repository.ServiceRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 

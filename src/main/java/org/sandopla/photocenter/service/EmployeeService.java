@@ -1,6 +1,6 @@
 package org.sandopla.photocenter.service;
 
-import org.sandopla.photocenter.Employee;
+import org.sandopla.photocenter.model.Employee;
 import org.sandopla.photocenter.repository.EmployeeRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

@@ -1,6 +1,7 @@
 package org.sandopla.photocenter.service;
 
-import org.sandopla.photocenter.Branch;
+import jakarta.annotation.PostConstruct;
+import org.sandopla.photocenter.model.Branch;
 import org.sandopla.photocenter.repository.BranchRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -14,6 +15,18 @@ public class BranchService {
     @Autowired
     public BranchService(BranchRepository branchRepository) {
         this.branchRepository = branchRepository;
+    }
+
+    @PostConstruct
+    public void initTestData() {
+        if (branchRepository.count() == 0) {
+            Branch branch = new Branch();
+            branch.setName("Main Office");
+            branch.setAddress("123 Main St");
+            branch.setWorkplaceCount(10);
+            branch.setType(Branch.BranchType.MAIN_OFFICE);
+            branchRepository.save(branch);
+        }
     }
 
     public List<Branch> getAllBranches() {

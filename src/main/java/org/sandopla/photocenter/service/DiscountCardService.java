@@ -1,6 +1,6 @@
 package org.sandopla.photocenter.service;
 
-import org.sandopla.photocenter.DiscountCard;
+import org.sandopla.photocenter.model.DiscountCard;
 import org.sandopla.photocenter.repository.DiscountCardRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

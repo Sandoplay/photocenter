@@ -1,9 +1,11 @@
 package org.sandopla.photocenter.service;
 
-import org.sandopla.photocenter.Order;
+import org.sandopla.photocenter.model.Order;
+import org.sandopla.photocenter.model.OrderDetail;
 import org.sandopla.photocenter.repository.OrderRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -11,14 +13,22 @@ import java.util.List;
 public class OrderService {
 
     private final OrderRepository orderRepository;
+    private final OrderDetailService orderDetailService;
 
     @Autowired
-    public OrderService(OrderRepository orderRepository) {
+    public OrderService(OrderRepository orderRepository, OrderDetailService orderDetailService) {
         this.orderRepository = orderRepository;
+        this.orderDetailService = orderDetailService;
     }
 
-    public List<Order> getAllOrders() {
-        return orderRepository.findAll();
+    @Transactional
+    public Order createOrder(Order order, List<OrderDetail> orderDetails) {
+        Order savedOrder = orderRepository.save(order);
+        for (OrderDetail detail : orderDetails) {
+            detail.setOrder(savedOrder);
+            orderDetailService.createOrderDetail(detail);
+        }
+        return savedOrder;
     }
 
     public Order getOrderById(Long id) {
@@ -26,19 +36,30 @@ public class OrderService {
                 .orElseThrow(() -> new RuntimeException("Order not found with id: " + id));
     }
 
-    public Order createOrder(Order order) {
-        return orderRepository.save(order);
+    public List<Order> getAllOrders() {
+        return orderRepository.findAll();
     }
 
-    public Order updateOrder(Long id, Order orderDetails) {
+    @Transactional
+    public Order updateOrder(Long id, Order orderDetails, List<OrderDetail> newOrderDetails) {
         Order order = getOrderById(id);
+        // Update order fields
         order.setClient(orderDetails.getClient());
         order.setBranch(orderDetails.getBranch());
         order.setOrderDate(orderDetails.getOrderDate());
         order.setCompletionDate(orderDetails.getCompletionDate());
         order.setStatus(orderDetails.getStatus());
-        order.setTotalCost(orderDetails.getTotalCost());
         order.setUrgent(orderDetails.isUrgent());
+
+        // Update order details
+        List<OrderDetail> existingDetails = orderDetailService.getOrderDetailsByOrderId(id);
+        existingDetails.forEach(detail -> orderDetailService.deleteOrderDetail(detail.getId()));
+
+        for (OrderDetail detail : newOrderDetails) {
+            detail.setOrder(order);
+            orderDetailService.createOrderDetail(detail);
+        }
+
         return orderRepository.save(order);
     }
 

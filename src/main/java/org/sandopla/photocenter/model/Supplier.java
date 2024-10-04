@@ -1,11 +1,12 @@
-package org.sandopla.photocenter;
+package org.sandopla.photocenter.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
 
 @Data
 @Entity
-public class Client {
+@Table(name = "suppliers")
+public class Supplier {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -13,15 +14,13 @@ public class Client {
     @Column(nullable = false)
     private String name;
 
-    @Column(name = "phone_number")
+    @Column(name = "contact_person")
+    private String contactPerson;
+
+    @Column(name = "phone_number", nullable = false)
     private String phoneNumber;
 
     private String email;
 
-    @Enumerated(EnumType.STRING)
-    private ClientType type;
-
-    public enum ClientType {
-        AMATEUR, PROFESSIONAL
-    }
+    private String address;
 }
