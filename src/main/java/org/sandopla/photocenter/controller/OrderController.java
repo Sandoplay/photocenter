@@ -1,9 +1,12 @@
 package org.sandopla.photocenter.controller;
 
+import org.sandopla.photocenter.model.Client;
 import org.sandopla.photocenter.model.Order;
 import org.sandopla.photocenter.model.OrderDetail;
+import org.sandopla.photocenter.service.ClientService;
 import org.sandopla.photocenter.service.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,17 +17,31 @@ import java.util.List;
 public class OrderController {
 
     private final OrderService orderService;
+    private final ClientService clientService;
 
     @Autowired
-    public OrderController(OrderService orderService) {
+    public OrderController(OrderService orderService, ClientService clientService) {
         this.orderService = orderService;
+        this.clientService = clientService;
     }
 
     @PostMapping
-    public ResponseEntity<Order> createOrder(@RequestBody OrderWithDetails orderWithDetails) {
-        Order createdOrder = orderService.createOrder(orderWithDetails.getOrder(), orderWithDetails.getOrderDetails());
-        return ResponseEntity.ok(createdOrder);
+    public ResponseEntity<?> createOrder(@RequestBody OrderWithDetails orderWithDetails) {
+        try {
+            // Перевірка існування клієнта
+            Client client = clientService.getClientById(orderWithDetails.getOrder().getClient().getId());
+            if (client == null) {
+                return ResponseEntity.badRequest().body("Client not found");
+            }
+
+            Order createdOrder = orderService.createOrder(orderWithDetails.getOrder(), orderWithDetails.getOrderDetails());
+            return ResponseEntity.ok(createdOrder);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error creating order: " + e.getMessage());
+        }
     }
+
 
     @GetMapping("/{id}")
     public ResponseEntity<Order> getOrderById(@PathVariable Long id) {

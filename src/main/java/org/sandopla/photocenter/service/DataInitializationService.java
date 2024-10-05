@@ -13,17 +13,17 @@ import java.math.BigDecimal;
 @Service
 public class DataInitializationService {
 
-    private final ClientRepository clientRepository;
+    private final ClientService clientService;
     private final BranchRepository branchRepository;
     private final ProductRepository productRepository;
     private final ServiceRepository serviceRepository;
 
     @Autowired
-    public DataInitializationService(ClientRepository clientRepository,
+    public DataInitializationService(ClientService clientService,
                                      BranchRepository branchRepository,
                                      ProductRepository productRepository,
                                      ServiceRepository serviceRepository) {
-        this.clientRepository = clientRepository;
+        this.clientService = clientService;
         this.branchRepository = branchRepository;
         this.productRepository = productRepository;
         this.serviceRepository = serviceRepository;
@@ -32,7 +32,7 @@ public class DataInitializationService {
     @EventListener(ApplicationReadyEvent.class)
     @Transactional
     public void initData() {
-        if (clientRepository.count() == 0) {
+        if (clientService.getAllClients().isEmpty()) {
             initClients();
         }
         if (branchRepository.count() == 0) {
@@ -52,14 +52,20 @@ public class DataInitializationService {
         client1.setPhoneNumber("1234567890");
         client1.setEmail("john@example.com");
         client1.setType(Client.ClientType.AMATEUR);
-        clientRepository.save(client1);
+        client1.setUsername("john.doe");
+        client1.setPassword("password123");
+        client1.setRole("USER");
+        clientService.createClient(client1);
 
         Client client2 = new Client();
         client2.setName("Jane Smith");
         client2.setPhoneNumber("0987654321");
         client2.setEmail("jane@example.com");
         client2.setType(Client.ClientType.PROFESSIONAL);
-        clientRepository.save(client2);
+        client2.setUsername("jane.smith");
+        client2.setPassword("password456");
+        client2.setRole("USER");
+        clientService.createClient(client2);
     }
 
     private void initBranches() {
@@ -82,17 +88,17 @@ public class DataInitializationService {
         Product product1 = new Product();
         product1.setName("Photo Paper 10x15");
         product1.setDescription("High quality photo paper");
+        product1.setCategory("Printing Supplies");
         product1.setPrice(new BigDecimal("5.99"));
         product1.setStockQuantity(1000);
-        product1.setCategory("Printing Supplies");  // Додано категорію
         productRepository.save(product1);
 
         Product product2 = new Product();
         product2.setName("Photo Frame 20x30");
         product2.setDescription("Wooden photo frame");
+        product2.setCategory("Frames");
         product2.setPrice(new BigDecimal("15.99"));
         product2.setStockQuantity(100);
-        product2.setCategory("Frames");  // Додано категорію
         productRepository.save(product2);
     }
 
