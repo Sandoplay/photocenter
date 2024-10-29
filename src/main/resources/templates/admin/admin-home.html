@@ -150,25 +150,64 @@
                             <h5>Останні замовлення</h5>
                         </div>
                         <div class="card-body">
-                            <table class="table">
-                                <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Клієнт</th>
-                                    <th>Філія</th>
-                                    <th>Дата</th>
-                                    <th>Статус</th>
-                                    <th>Сума</th>
-                                    <th>Дії</th>
-                                </tr>
-                                </thead>
-                                <tbody>
-                                <!-- Додамо це пізніше, коли реалізуємо логіку замовлень -->
-                                <tr>
-                                    <td colspan="7" class="text-center">Немає даних</td>
-                                </tr>
-                                </tbody>
-                            </table>
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Клієнт</th>
+                                        <th>Дата</th>
+                                        <th>Статус</th>
+                                        <th>Терміновість</th>
+                                        <th>Сума</th>
+                                        <th>Дії</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    <tr th:each="order : ${lastOrders}">
+                                        <td th:text="${order.id}">1</td>
+                                        <td th:text="${order.client.name}">Клієнт</td>
+                                        <td th:text="${#temporals.format(order.orderDate, 'dd.MM.yyyy HH:mm')}">01.01.2024</td>
+                                        <td>
+                                    <span th:class="${'badge ' +
+                                        (order.status == 'NEW' ? 'bg-primary' : '') +
+                                        (order.status == 'IN_PROGRESS' ? 'bg-warning' : '') +
+                                        (order.status == 'COMPLETED' ? 'bg-success' : '') +
+                                        (order.status == 'CANCELLED' ? 'bg-danger' : '')}"
+                                          th:text="${order.status}">
+                                        Статус
+                                    </span>
+                                        </td>
+                                        <td>
+                                            <span th:if="${order.urgent}" class="badge bg-danger">Термінове</span>
+                                            <span th:unless="${order.urgent}" class="badge bg-secondary">Звичайне</span>
+                                        </td>
+                                        <td th:text="${#numbers.formatDecimal(order.totalCost, 1, 2) + '₴'}">100.00₴</td>
+                                        <td>
+                                            <div class="btn-group">
+                                                <button class="btn btn-sm btn-outline-primary"
+                                                        th:onclick="'viewOrder(' + ${order.id} + ')'">
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                                <button th:if="${order.status == 'NEW'}"
+                                                        class="btn btn-sm btn-outline-success"
+                                                        th:onclick="'startProcessing(' + ${order.id} + ')'">
+                                                    <i class="fas fa-play"></i>
+                                                </button>
+                                                <button th:if="${order.status == 'IN_PROGRESS'}"
+                                                        class="btn btn-sm btn-outline-info"
+                                                        th:onclick="'completeOrder(' + ${order.id} + ')'">
+                                                    <i class="fas fa-check"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr th:if="${#lists.isEmpty(lastOrders)}">
+                                        <td colspan="7" class="text-center">Немає замовлень</td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -176,7 +215,45 @@
         </main>
     </div>
 </div>
+<script th:inline="javascript">
+    function viewOrder(orderId) {
+        // TODO: Реалізувати перегляд деталей замовлення
+        console.log('Перегляд замовлення:', orderId);
+    }
 
+    function startProcessing(orderId) {
+        if (confirm('Почати обробку замовлення?')) {
+            updateOrderStatus(orderId, 'IN_PROGRESS');
+        }
+    }
+
+    function completeOrder(orderId) {
+        if (confirm('Позначити замовлення як виконане?')) {
+            updateOrderStatus(orderId, 'COMPLETED');
+        }
+    }
+
+    function updateOrderStatus(orderId, status) {
+        fetch(`/api/orders/${orderId}/status`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ status: status })
+        })
+            .then(response => {
+                if (response.ok) {
+                    window.location.reload();
+                } else {
+                    alert('Помилка при оновленні статусу замовлення');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Помилка при оновленні статусу замовлення');
+            });
+    }
+</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

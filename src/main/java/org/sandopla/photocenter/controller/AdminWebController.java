@@ -33,14 +33,15 @@ public class AdminWebController {
             model.addAttribute("branchesCount", branchService.getBranchesCount());
             model.addAttribute("totalRevenue", orderService.getTotalRevenue());
             model.addAttribute("branches", branchService.getAllBranches());
+            model.addAttribute("lastOrders", orderService.getLastOrders(10)); // останні 10 замовлень для власника
         } else {
             Branch adminBranch = client.getBranch();
             model.addAttribute("todayOrders", orderService.getTodayOrdersCount(adminBranch));
             model.addAttribute("branchRevenue", orderService.getBranchRevenue(adminBranch));
             model.addAttribute("kiosks", branchService.getKiosksForBranch(adminBranch.getId()));
+            // Змінюємо на отримання останніх замовлень без обмеження по даті
+            model.addAttribute("lastOrders", orderService.getLastBranchOrders(adminBranch, 10));
         }
-
-        model.addAttribute("lastOrders", orderService.getLastOrders(10));
 
         return "admin/admin-home";
     }

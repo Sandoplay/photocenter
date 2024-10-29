@@ -6,6 +6,8 @@ import org.sandopla.photocenter.model.Client;
 import org.sandopla.photocenter.model.Branch;
 import org.sandopla.photocenter.repository.OrderRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -113,5 +115,12 @@ public class OrderService {
                 .stream()
                 .limit(limit)
                 .collect(Collectors.toList());
+    }
+
+    public List<Order> getLastBranchOrders(Branch branch, int count) {
+        return orderRepository.findTopNByBranchOrderByOrderDateDesc(
+                branch,
+                PageRequest.of(0, count)
+        );
     }
 }
