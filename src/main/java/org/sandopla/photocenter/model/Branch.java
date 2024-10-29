@@ -2,6 +2,7 @@ package org.sandopla.photocenter.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.ToString;
 
 @Data
 @Entity
@@ -23,11 +24,17 @@ public class Branch {
     @Column(nullable = false)
     private BranchType type;
 
+    @ToString.Exclude  // Додайте це
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_branch_id")
     private Branch parentBranch;
 
     public enum BranchType {
         MAIN_OFFICE, BRANCH, KIOSK
+    }
+
+    @Override
+    public String toString() {
+        return "Branch(id=" + id + ", name=" + name + ", address=" + address + ")";
     }
 }

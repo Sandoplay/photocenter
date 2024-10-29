@@ -7,6 +7,7 @@ import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.sandopla.photocenter.model.Role;
 
 import java.math.BigDecimal;
 
@@ -54,7 +55,7 @@ public class DataInitializationService {
         client1.setType(Client.ClientType.AMATEUR);
         client1.setUsername("john.doe");
         client1.setPassword("password123");
-        client1.setRole("USER");
+        client1.setRole(Role.USER);  // Змінено з "USER" на Role.USER
         clientService.createClient(client1);
 
         Client client2 = new Client();
@@ -64,7 +65,7 @@ public class DataInitializationService {
         client2.setType(Client.ClientType.PROFESSIONAL);
         client2.setUsername("jane.smith");
         client2.setPassword("password456");
-        client2.setRole("USER");
+        client2.setRole(Role.USER);  // Змінено з "USER" на Role.USER
         clientService.createClient(client2);
     }
 

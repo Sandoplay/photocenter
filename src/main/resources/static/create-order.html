@@ -7,110 +7,285 @@
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; }
-        form { max-width: 500px; margin: 0 auto; }
+        form { max-width: 800px; margin: 0 auto; }
         label { display: block; margin-top: 10px; }
         input, select { width: 100%; padding: 5px; margin-top: 5px; }
         button { margin-top: 20px; padding: 10px; }
         #response { margin-top: 20px; white-space: pre-wrap; }
+        .orderDetail {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-top: 10px;
+            border-radius: 5px;
+        }
+        .remove-detail {
+            background-color: #ff4444;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .price-display {
+            font-weight: bold;
+            margin-top: 5px;
+        }
     </style>
 </head>
 <body>
-    <h1>Create New Order</h1>
-    <form id="orderForm">
-        <label for="clientId">Client ID:</label>
-        <input type="number" id="clientId" required>
+<h1>Create New Order</h1>
+<form id="orderForm">
+    <label for="branchSelect">Select Branch:</label>
+    <select id="branchSelect" required>
+        <option value="">Select a branch</option>
+    </select>
 
-        <label for="branchId">Branch ID:</label>
-        <input type="number" id="branchId" required>
+    <label for="orderDate">Order Date:</label>
+    <input type="datetime-local" id="orderDate" required disabled>
 
-        <label for="orderDate">Order Date:</label>
-        <input type="datetime-local" id="orderDate" required>
+    <label for="isUrgent">Is Urgent:</label>
+    <select id="isUrgent" required>
+        <option value="false">No</option>
+        <option value="true">Yes</option>
+    </select>
 
-        <label for="status">Status:</label>
-        <select id="status" required>
-            <option value="NEW">New</option>
-            <option value="IN_PROGRESS">In Progress</option>
-            <option value="COMPLETED">Completed</option>
-            <option value="CANCELLED">Cancelled</option>
-        </select>
+    <h3>Order Details</h3>
+    <div id="orderDetails">
+    </div>
+    <button type="button" onclick="addOrderDetail()">Add Item</button>
 
-        <label for="isUrgent">Is Urgent:</label>
-        <select id="isUrgent" required>
-            <option value="false">No</option>
-            <option value="true">Yes</option>
-        </select>
+    <div class="total-section" style="margin-top: 20px;">
+        <h4>Total: <span id="orderTotal">0.00</span>₴</h4>
+    </div>
 
-        <h3>Order Details</h3>
-        <div id="orderDetails">
-            <div class="orderDetail">
-                <label>Product ID: <input type="number" class="productId"></label>
-                <label>Service ID: <input type="number" class="serviceId"></label>
-                <label>Quantity: <input type="number" class="quantity" required></label>
-                <label>Price: <input type="number" step="0.01" class="price" required></label>
-            </div>
+    <button type="submit">Create Order</button>
+</form>
+
+<div id="response"></div>
+
+<!-- Template for order detail -->
+<template id="orderDetailTemplate">
+    <div class="orderDetail">
+        <button type="button" class="remove-detail" onclick="removeOrderDetail(this)" style="float: right;">×</button>
+
+        <label>Item Type:
+            <select class="item-type" onchange="handleItemTypeChange(this)">
+                <option value="">Select type</option>
+                <option value="product">Product</option>
+                <option value="service">Service</option>
+            </select>
+        </label>
+
+        <label class="item-select-container" style="display: none;">
+            <span class="item-label">Select Item:</span>
+            <select class="item-select" onchange="handleItemSelect(this)">
+                <option value="">Select item</option>
+            </select>
+        </label>
+
+        <label>
+            Quantity:
+            <input type="number" class="quantity" value="1" min="1" onchange="updateDetailTotal(this.closest('.orderDetail'))" required>
+        </label>
+
+        <div class="price-display">
+            Price: <span class="item-price">0.00</span>₴
         </div>
-        <button type="button" onclick="addOrderDetail()">Add Order Detail</button>
+        <div class="price-display">
+            Total: <span class="detail-total">0.00</span>₴
+        </div>
+    </div>
+</template>
 
-        <button type="submit">Create Order</button>
-    </form>
+<script>
+    let products = [];
+    let services = [];
 
-    <div id="response"></div>
+    window.onload = function() {
+        setCurrentDateTime();
+        loadBranches();
+        loadProducts();
+        loadServices();
+    };
 
-    <script>
-        function setCurrentDateTime() {
-            var now = new Date();
-            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-            document.getElementById('orderDate').value = now.toISOString().slice(0, 16);
-        }
+    function setCurrentDateTime() {
+        var now = new Date();
+        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+        document.getElementById('orderDate').value = now.toISOString().slice(0, 16);
+    }
 
-        window.onload = setCurrentDateTime;
-
-        function addOrderDetail() {
-            const newDetail = document.querySelector('.orderDetail').cloneNode(true);
-            newDetail.querySelectorAll('input').forEach(input => input.value = '');
-            document.getElementById('orderDetails').appendChild(newDetail);
-        }
-
-        document.getElementById('orderForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-
-            const orderDetails = [];
-            document.querySelectorAll('.orderDetail').forEach(detail => {
-                orderDetails.push({
-                    product: detail.querySelector('.productId').value ? { id: parseInt(detail.querySelector('.productId').value) } : null,
-                    service: detail.querySelector('.serviceId').value ? { id: parseInt(detail.querySelector('.serviceId').value) } : null,
-                    quantity: parseInt(detail.querySelector('.quantity').value),
-                    price: parseFloat(detail.querySelector('.price').value)
-                });
+    async function loadBranches() {
+        try {
+            const response = await fetch('/api/dropdown/branches');
+            const branches = await response.json();
+            const select = document.getElementById('branchSelect');
+            branches.forEach(branch => {
+                const option = document.createElement('option');
+                option.value = branch.id;
+                option.textContent = `${branch.name} (${branch.address})`;
+                select.appendChild(option);
             });
+        } catch (error) {
+            console.error('Error loading branches:', error);
+        }
+    }
 
-            const orderData = {
-                order: {
-                    client: { id: parseInt(document.getElementById('clientId').value) },
-                    branch: { id: parseInt(document.getElementById('branchId').value) },
-                    orderDate: document.getElementById('orderDate').value,
-                    status: document.getElementById('status').value,
-                    isUrgent: document.getElementById('isUrgent').value === 'true'
-                },
-                orderDetails: orderDetails  // Тепер це масив об'єктів
-            };
+    async function loadProducts() {
+        try {
+            const response = await fetch('/api/dropdown/products');
+            products = await response.json();
+        } catch (error) {
+            console.error('Error loading products:', error);
+        }
+    }
 
-            fetch('/api/orders', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(orderData),
-            })
-                .then(response => response.json())
-                .then(data => {
-                    document.getElementById('response').textContent = JSON.stringify(data, null, 2);
-                })
-                .catch((error) => {
-                    console.error('Error:', error);
-                    document.getElementById('response').textContent = 'Error: ' + error;
-                });
+    async function loadServices() {
+        try {
+            const response = await fetch('/api/dropdown/services');
+            services = await response.json();
+        } catch (error) {
+            console.error('Error loading services:', error);
+        }
+    }
+
+    function addOrderDetail() {
+        const template = document.getElementById('orderDetailTemplate');
+        const clone = template.content.cloneNode(true);
+        document.getElementById('orderDetails').appendChild(clone);
+        updateOrderTotal();
+    }
+
+    function removeOrderDetail(button) {
+        button.closest('.orderDetail').remove();
+        updateOrderTotal();
+    }
+
+    function handleItemTypeChange(select) {
+        const container = select.closest('.orderDetail');
+        const itemSelect = container.querySelector('.item-select');
+        const itemSelectContainer = container.querySelector('.item-select-container');
+
+        itemSelect.innerHTML = '<option value="">Select item</option>';
+
+        if (select.value === 'product') {
+            products.forEach(product => {
+                const option = document.createElement('option');
+                option.value = product.id;
+                option.textContent = `${product.name} - ${product.price}₴`;
+                option.dataset.price = product.price;
+                itemSelect.appendChild(option);
+            });
+            itemSelectContainer.style.display = 'block';
+        } else if (select.value === 'service') {
+            services.forEach(service => {
+                const option = document.createElement('option');
+                option.value = service.id;
+                option.textContent = `${service.name} - ${service.basePrice}₴`;
+                option.dataset.price = service.basePrice;
+                itemSelect.appendChild(option);
+            });
+            itemSelectContainer.style.display = 'block';
+        } else {
+            itemSelectContainer.style.display = 'none';
+        }
+    }
+
+    function handleItemSelect(select) {
+        const container = select.closest('.orderDetail');
+        const option = select.options[select.selectedIndex];
+        const price = parseFloat(option.dataset.price);
+
+        container.querySelector('.item-price').textContent = price.toFixed(2);
+        updateDetailTotal(container);
+    }
+
+    function updateDetailTotal(container) {
+        const price = parseFloat(container.querySelector('.item-price').textContent);
+        const quantity = parseInt(container.querySelector('.quantity').value);
+        const total = price * quantity;
+        container.querySelector('.detail-total').textContent = total.toFixed(2);
+        updateOrderTotal();
+    }
+
+    function updateOrderTotal() {
+        const details = document.querySelectorAll('.orderDetail');
+        let total = 0;
+        details.forEach(detail => {
+            total += parseFloat(detail.querySelector('.detail-total').textContent);
         });
-    </script>
+        document.getElementById('orderTotal').textContent = total.toFixed(2);
+    }
+
+    document.getElementById('orderForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const orderDetails = [];
+        document.querySelectorAll('.orderDetail').forEach(detail => {
+            const itemType = detail.querySelector('.item-type').value;
+            const itemSelect = detail.querySelector('.item-select');
+            const itemId = itemSelect.value;
+            const quantity = parseInt(detail.querySelector('.quantity').value);
+            const price = parseFloat(detail.querySelector('.item-price').textContent);
+
+            if (itemType && itemId) {
+                let orderDetail = {
+                    quantity: quantity,
+                    price: price,
+                    totalPrice: price * quantity
+                };
+
+                if (itemType === 'product') {
+                    orderDetail.product = { id: parseInt(itemId) };
+                    orderDetail.service = null;
+                } else {
+                    orderDetail.product = null;
+                    orderDetail.service = { id: parseInt(itemId) };
+                }
+
+                orderDetails.push(orderDetail);
+            }
+        });
+
+        const orderData = {
+            order: {
+                branch: { id: parseInt(document.getElementById('branchSelect').value) },
+                orderDate: document.getElementById('orderDate').value,
+                status: 'NEW',
+                isUrgent: document.getElementById('isUrgent').value === 'true'
+            },
+            orderDetails: orderDetails
+        };
+
+        console.log('Sending order data:', orderData); // Для відладки
+
+        fetch('/api/orders', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(orderData),
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                document.getElementById('response').textContent = 'Order created successfully!';
+                document.getElementById('response').style.color = 'green';
+                // Очищаємо форму
+                document.getElementById('orderForm').reset();
+                document.getElementById('orderDetails').innerHTML = '';
+                setCurrentDateTime();
+                updateOrderTotal();
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+                document.getElementById('response').textContent = 'Error creating order: ' + error.message;
+                document.getElementById('response').style.color = 'red';
+            });
+    });
+</script>
 </body>
 </html>

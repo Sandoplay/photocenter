@@ -8,31 +8,51 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
-    <div class="container-fluid">
-        <div class="row">
-            <!-- Бічне меню -->
-            <nav class="col-md-2 d-none d-md-block bg-dark sidebar min-vh-100">
-                <div class="position-sticky">
-                    <div class="p-3 text-white">
-                        <h5>Адмін панель</h5>
-                    </div>
-                    <ul class="nav flex-column">
-                        <li class="nav-item">
-                            <a class="nav-link text-white active" href="/admin">
-                                <i class="fas fa-home me-2"></i>
-                                Головна
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-white" href="/admin/users">
-                                <i class="fas fa-users me-2"></i>
-                                Користувачі
-                            </a>
-                        </li>
+<div class="container-fluid">
+    <div class="row">
+        <!-- Бічне меню -->
+        <nav class="col-md-2 d-none d-md-block bg-dark sidebar min-vh-100">
+            <div class="position-sticky">
+                <div class="p-3 text-white">
+                    <h5>Адмін панель</h5>
+                    <p class="small" th:text="${#authentication.principal.name}">Username</p>
+                </div>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="/admin">
+                            <i class="fas fa-home me-2"></i>
+                            Головна
+                        </a>
+                    </li>
+
+                    <!-- Меню для OWNER -->
+                    <th:block sec:authorize="hasRole('OWNER')">
                         <li class="nav-item">
                             <a class="nav-link text-white" href="/admin/branches">
                                 <i class="fas fa-store me-2"></i>
-                                Філії та кіоски
+                                Всі філії
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-white" href="/admin/admins">
+                                <i class="fas fa-users-cog me-2"></i>
+                                Адміністратори
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-white" href="/admin/global-statistics">
+                                <i class="fas fa-chart-line me-2"></i>
+                                Загальна статистика
+                            </a>
+                        </li>
+                    </th:block>
+
+                    <!-- Меню для ADMIN -->
+                    <th:block sec:authorize="hasRole('ADMIN')">
+                        <li class="nav-item">
+                            <a class="nav-link text-white" href="/admin/branch">
+                                <i class="fas fa-store me-2"></i>
+                                Моя філія
                             </a>
                         </li>
                         <li class="nav-item">
@@ -42,111 +62,121 @@
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link text-white" href="/admin/products">
-                                <i class="fas fa-box me-2"></i>
-                                Товари
+                            <a class="nav-link text-white" href="/admin/statistics">
+                                <i class="fas fa-chart-bar me-2"></i>
+                                Статистика філії
                             </a>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-white" href="/admin/services">
-                                <i class="fas fa-camera me-2"></i>
-                                Послуги
-                            </a>
-                        </li>
-                    </ul>
-                </div>
-            </nav>
+                    </th:block>
 
-            <!-- Основний контент -->
-            <main class="col-md-10 ms-sm-auto px-4">
-                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-                    <h1>Панель управління</h1>
-                    <div class="btn-group">
-                        <button type="button" class="btn btn-secondary dropdown-toggle" data-bs-toggle="dropdown">
-                            <i class="fas fa-user me-2"></i>
-                            <span sec:authentication="name">Username</span>
+                    <!-- Загальні пункти меню -->
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="/admin/products">
+                            <i class="fas fa-box me-2"></i>
+                            Товари
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="/admin/services">
+                            <i class="fas fa-camera me-2"></i>
+                            Послуги
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+
+        <!-- Основний контент -->
+        <main class="col-md-10 ms-sm-auto px-4">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1>Панель управління</h1>
+                <div class="btn-group">
+                    <form th:action="@{/auth/logout}" method="post">
+                        <button type="submit" class="btn btn-outline-danger">
+                            <i class="fas fa-sign-out-alt me-2"></i>Вийти
                         </button>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            <li>
-                                <form th:action="@{/auth/logout}" method="post">
-                                    <button type="submit" class="dropdown-item">
-                                        <i class="fas fa-sign-out-alt me-2"></i>Вийти
-                                    </button>
-                                </form>
-                            </li>
-                        </ul>
-                    </div>
+                    </form>
                 </div>
+            </div>
 
-                <!-- Статистика -->
-                <div class="row">
+            <!-- Статистика -->
+            <div class="row">
+                <!-- Для OWNER -->
+                <th:block sec:authorize="hasRole('OWNER')">
                     <div class="col-md-3 mb-4">
                         <div class="card bg-primary text-white">
                             <div class="card-body">
-                                <h5 class="card-title">Замовлення сьогодні</h5>
-                                <h2 class="card-text">0</h2>
+                                <h5 class="card-title">Всього філій</h5>
+                                <h2 class="card-text" th:text="${branchesCount}">0</h2>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-3 mb-4">
                         <div class="card bg-success text-white">
                             <div class="card-body">
-                                <h5 class="card-title">Активні клієнти</h5>
-                                <h2 class="card-text">0</h2>
+                                <h5 class="card-title">Загальна виручка</h5>
+                                <h2 class="card-text" th:text="${totalRevenue} + '₴'">0₴</h2>
+                            </div>
+                        </div>
+                    </div>
+                </th:block>
+
+                <!-- Для ADMIN -->
+                <th:block sec:authorize="hasRole('ADMIN')">
+                    <div class="col-md-3 mb-4">
+                        <div class="card bg-info text-white">
+                            <div class="card-body">
+                                <h5 class="card-title">Замовлень сьогодні</h5>
+                                <h2 class="card-text" th:text="${todayOrders}">0</h2>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-3 mb-4">
                         <div class="card bg-warning text-dark">
                             <div class="card-body">
-                                <h5 class="card-title">Відкриті філії</h5>
-                                <h2 class="card-text">0</h2>
+                                <h5 class="card-title">Виручка філії</h5>
+                                <h2 class="card-text" th:text="${branchRevenue} + '₴'">0₴</h2>
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-3 mb-4">
-                        <div class="card bg-info text-white">
-                            <div class="card-body">
-                                <h5 class="card-title">Виручка сьогодні</h5>
-                                <h2 class="card-text">0₴</h2>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                </th:block>
+            </div>
 
-                <!-- Останні замовлення -->
-                <div class="row mt-4">
-                    <div class="col-12">
-                        <div class="card">
-                            <div class="card-header">
-                                <h5>Останні замовлення</h5>
-                            </div>
-                            <div class="card-body">
-                                <table class="table">
-                                    <thead>
-                                        <tr>
-                                            <th>ID</th>
-                                            <th>Клієнт</th>
-                                            <th>Філія</th>
-                                            <th>Дата</th>
-                                            <th>Статус</th>
-                                            <th>Сума</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                            <td colspan="6" class="text-center">Немає даних</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
+            <!-- Останні замовлення -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>Останні замовлення</h5>
+                        </div>
+                        <div class="card-body">
+                            <table class="table">
+                                <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Клієнт</th>
+                                    <th>Філія</th>
+                                    <th>Дата</th>
+                                    <th>Статус</th>
+                                    <th>Сума</th>
+                                    <th>Дії</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <!-- Додамо це пізніше, коли реалізуємо логіку замовлень -->
+                                <tr>
+                                    <td colspan="7" class="text-center">Немає даних</td>
+                                </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
-            </main>
-        </div>
+            </div>
+        </main>
     </div>
+</div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

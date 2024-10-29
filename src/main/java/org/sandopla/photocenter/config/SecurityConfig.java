@@ -1,6 +1,7 @@
 package org.sandopla.photocenter.config;
 
 import org.sandopla.photocenter.model.Client;
+import org.sandopla.photocenter.model.Role;
 import org.sandopla.photocenter.service.ClientService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -27,19 +28,6 @@ public class SecurityConfig {
     }
 
     @Bean
-    public AuthenticationSuccessHandler authenticationSuccessHandler() {
-        return (request, response, authentication) -> {
-            Client client = (Client) authentication.getPrincipal();
-            // Перевіряємо роль користувача
-            if (client.getRole().equals("ADMIN") || client.getRole().equals("OWNER")) {
-                response.sendRedirect("/admin");
-            } else {
-                response.sendRedirect("/home");
-            }
-        };
-    }
-
-    @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         AuthenticationManagerBuilder authenticationManagerBuilder = http.getSharedObject(AuthenticationManagerBuilder.class);
         authenticationManagerBuilder
@@ -49,15 +37,18 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(authz -> authz
-                        .requestMatchers("/css/**", "/js/**", "/images/**", "/webjars/**", "/favicon.ico").permitAll()
-                        .requestMatchers("/", "/home", "/auth/login", "/auth/signup", "/auth/api/**").permitAll()
+                        .requestMatchers("/css/**", "/js/**", "/images/**",
+                                "/webjars/**", "/favicon.ico", "/static/**").permitAll()
+                        .requestMatchers("/", "/home", "/auth/login",
+                                "/auth/signup", "/auth/api/**").permitAll()
                         .requestMatchers("/admin/**").hasAnyRole("OWNER", "ADMIN")
+                        .requestMatchers("/create-order").authenticated()  // Додано цей рядок
                         .anyRequest().authenticated()
                 )
                 .formLogin(form -> form
                         .loginPage("/auth/login")
                         .loginProcessingUrl("/auth/login-process")
-                        .successHandler(authenticationSuccessHandler()) // Використовуємо власний обробник успішної аутентифікації
+                        .defaultSuccessUrl("/home", true)
                         .failureUrl("/auth/login?error=true")
                         .permitAll()
                 )

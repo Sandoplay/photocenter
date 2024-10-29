@@ -4,6 +4,7 @@ import jakarta.annotation.PostConstruct;
 import org.sandopla.photocenter.model.Branch;
 import org.sandopla.photocenter.repository.BranchRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import java.util.List;
 
@@ -27,6 +28,15 @@ public class BranchService {
             branch.setType(Branch.BranchType.MAIN_OFFICE);
             branchRepository.save(branch);
         }
+    }
+
+    public long getBranchesCount() {
+        return branchRepository.count();
+    }
+
+    // Додаємо метод для отримання філій за типом
+    public List<Branch> getBranchesByType(Branch.BranchType type) {
+        return branchRepository.findByType(type);
     }
 
     public List<Branch> getAllBranches() {
@@ -54,5 +64,23 @@ public class BranchService {
 
     public void deleteBranch(Long id) {
         branchRepository.deleteById(id);
+    }
+
+
+    public List<Branch> getKiosksForBranch(Long branchId) {
+        return branchRepository.findByParentBranchId(branchId);
+    }
+
+    @PreAuthorize("hasRole('OWNER')")
+    public Branch createMainOffice(Branch branch) {
+        if (getBranchesByType(Branch.BranchType.MAIN_OFFICE).size() > 0) {
+            throw new RuntimeException("Main office already exists");
+        }
+        branch.setType(Branch.BranchType.MAIN_OFFICE);
+        return branchRepository.save(branch);
+    }
+
+    public boolean canDeleteBranch(Long branchId) {
+        return !branchRepository.existsByParentBranchId(branchId);
     }
 }

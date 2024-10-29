@@ -2,6 +2,7 @@ package org.sandopla.photocenter.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.ToString;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -34,8 +35,13 @@ public class Client implements UserDetails {
     @Column(nullable = false)
     private String password;
 
-    @Column(nullable = false)
-    private String role;
+    @Enumerated(EnumType.STRING)
+    private Role role;
+
+    @ToString.Exclude  // Додайте це
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "branch_id")
+    private Branch branch;  // Для адміністраторів - їх філія
 
     public enum ClientType {
         AMATEUR, PROFESSIONAL
@@ -43,7 +49,10 @@ public class Client implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role));
+        if (role != null) {
+            return Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role.name()));
+        }
+        return Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"));
     }
 
     @Override

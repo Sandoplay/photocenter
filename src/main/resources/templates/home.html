@@ -1,19 +1,86 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
-    <title>Home</title>
+    <meta charset="UTF-8">
+    <title>Фотоцентр - Головна</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
-<h1>Welcome to PhotoCenter</h1>
-<div sec:authorize="isAuthenticated()">
-    Welcome, <span sec:authentication="name"></span>!
-    <form th:action="@{/auth/logout}" method="post">
-        <input type="submit" value="Logout"/>
-    </form>
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
+        <a class="navbar-brand" href="#">Фотоцентр</a>
+        <div class="collapse navbar-collapse">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="/home">Головна</a>
+                </li>
+                <li class="nav-item" sec:authorize="hasAnyRole('OWNER', 'ADMIN')">
+                    <a class="nav-link" href="/admin">Адмін панель</a>
+                </li>
+            </ul>
+            <div class="d-flex">
+                <div sec:authorize="isAuthenticated()">
+                    <span class="text-light me-3" sec:authentication="name"></span>
+                    <form th:action="@{/auth/logout}" method="post" class="d-inline">
+                        <button type="submit" class="btn btn-outline-light">Вийти</button>
+                    </form>
+                </div>
+                <div sec:authorize="!isAuthenticated()">
+                    <a href="/auth/login" class="btn btn-outline-light me-2">Увійти</a>
+                    <a href="/auth/signup" class="btn btn-light">Зареєструватися</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h1>Ласкаво просимо до Фотоцентру</h1>
+            <p>Оберіть потрібні послуги або перейдіть до адмін панелі, якщо у вас є відповідні права.</p>
+        </div>
+    </div>
+
+    <!-- Кнопка створення замовлення -->
+    <div class="row mb-4" sec:authorize="isAuthenticated()">
+        <div class="col">
+            <a href="/create-order" class="btn btn-primary btn-lg">
+                <i class="fas fa-plus me-2"></i>Створити нове замовлення
+            </a>
+        </div>
+    </div>
+
+    <!-- Список останніх замовлень користувача, якщо він авторизований -->
+    <div class="row" sec:authorize="isAuthenticated()">
+        <div class="col">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Ваші останні замовлення</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table">
+                        <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Дата</th>
+                            <th>Філія</th>
+                            <th>Статус</th>
+                            <th>Сума</th>
+                            <th>Дії</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <!-- Тут буде список замовлень -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
-<div sec:authorize="!isAuthenticated()">
-    <a href="/auth/login">Login</a>
-    <a href="/auth/signup">Sign Up</a>
-</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

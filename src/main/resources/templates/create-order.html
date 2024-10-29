@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Створення замовлення - Фотоцентр</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Arial, sans-serif;
+        }
+        .main-container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 0 15px;
+        }
+        .card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .card-header {
+            background-color: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+            padding: 15px 20px;
+        }
+        .form-select, .form-control {
+            border-radius: 6px;
+            border: 1px solid #ced4da;
+            padding: 8px 12px;
+        }
+        .form-label {
+            font-weight: 500;
+            margin-bottom: 5px;
+            color: #495057;
+        }
+        .orderDetail {
+            background-color: #fff;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            position: relative;
+        }
+        .remove-detail {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        .remove-detail:hover {
+            background-color: #c82333;
+        }
+        .total-section {
+            background-color: #e9ecef;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        .btn-add-item {
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 6px;
+        }
+        .btn-add-item:hover {
+            background-color: #5a6268;
+        }
+        .price-display {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 6px;
+            margin-top: 10px;
+        }
+        .nav-link {
+            color: rgba(255,255,255,.8) !important;
+        }
+        .nav-link:hover {
+            color: white !important;
+        }
+    </style>
+</head>
+<body>
+<!-- Навігаційна панель -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
+        <a class="navbar-brand" href="/">Фотоцентр</a>
+        <div class="collapse navbar-collapse">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="/home">Головна</a>
+                </li>
+            </ul>
+            <div class="d-flex align-items-center">
+                <span class="text-light me-3" sec:authentication="name"></span>
+                <form th:action="@{/auth/logout}" method="post" class="d-inline">
+                    <button type="submit" class="btn btn-outline-light btn-sm">Вийти</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="main-container">
+    <h2 class="mb-4">Створення нового замовлення</h2>
+
+    <form id="orderForm">
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">Оберіть філію:</label>
+                    <select id="branchSelect" required class="form-select">
+                        <option value="">Оберіть філію</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Термінове замовлення:</label>
+                    <select id="isUrgent" required class="form-select">
+                        <option value="false">Ні</option>
+                        <option value="true">Так</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Деталі замовлення</h5>
+            </div>
+            <div class="card-body">
+                <div id="orderDetails"></div>
+                <button type="button" onclick="addOrderDetail()" class="btn btn-add-item">
+                    <i class="fas fa-plus me-2"></i>Додати позицію
+                </button>
+
+                <div class="total-section mt-4">
+                    <h5 class="mb-0">Загальна сума: <span id="orderTotal">0.00</span>₴</h5>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-grid gap-2 mt-4">
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-check me-2"></i>Створити замовлення
+            </button>
+        </div>
+    </form>
+
+    <div id="response" class="alert mt-3" style="display: none;"></div>
+</div>
+
+<!-- Template для деталей замовлення -->
+<template id="orderDetailTemplate">
+    <div class="orderDetail">
+        <button type="button" class="remove-detail" onclick="removeOrderDetail(this)">×</button>
+
+        <div class="mb-3">
+            <label class="form-label">Тип позиції:</label>
+            <select class="item-type form-select" onchange="handleItemTypeChange(this)">
+                <option value="">Оберіть тип</option>
+                <option value="product">Товар</option>
+                <option value="service">Послуга</option>
+            </select>
+        </div>
+
+        <div class="item-select-container mb-3" style="display: none;">
+            <label class="form-label">Оберіть позицію:</label>
+            <select class="item-select form-select" onchange="handleItemSelect(this)">
+                <option value="">Оберіть позицію</option>
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Кількість:</label>
+            <input type="number" class="quantity form-control" value="1" min="1" onchange="updateDetailTotal(this.closest('.orderDetail'))" required>
+        </div>
+
+        <div class="price-display">
+            <div>Ціна: <span class="item-price">0.00</span>₴</div>
+            <div>Сума: <span class="detail-total">0.00</span>₴</div>
+        </div>
+    </div>
+</template>
+
+<!-- JavaScript залишається без змін -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+
+<script th:inline="javascript">
+    let products = [];
+    let services = [];
+
+    window.onload = function() {
+        loadBranches();
+        loadProducts();
+        loadServices();
+    };
+
+    async function loadBranches() {
+        try {
+            const response = await fetch('/api/dropdown/branches');
+            const branches = await response.json();
+            const select = document.getElementById('branchSelect');
+            branches.forEach(branch => {
+                const option = document.createElement('option');
+                option.value = branch.id;
+                option.textContent = `${branch.name} (${branch.address})`;
+                select.appendChild(option);
+            });
+        } catch (error) {
+            console.error('Error loading branches:', error);
+        }
+    }
+
+    async function loadProducts() {
+        try {
+            const response = await fetch('/api/dropdown/products');
+            products = await response.json();
+        } catch (error) {
+            console.error('Error loading products:', error);
+        }
+    }
+
+    async function loadServices() {
+        try {
+            const response = await fetch('/api/dropdown/services');
+            services = await response.json();
+        } catch (error) {
+            console.error('Error loading services:', error);
+        }
+    }
+
+    function addOrderDetail() {
+        const template = document.getElementById('orderDetailTemplate');
+        const clone = template.content.cloneNode(true);
+        document.getElementById('orderDetails').appendChild(clone);
+        updateOrderTotal();
+    }
+
+    function removeOrderDetail(button) {
+        button.closest('.orderDetail').remove();
+        updateOrderTotal();
+    }
+
+    function handleItemTypeChange(select) {
+        const container = select.closest('.orderDetail');
+        const itemSelect = container.querySelector('.item-select');
+        const itemSelectContainer = container.querySelector('.item-select-container');
+
+        itemSelect.innerHTML = '<option value="">Select item</option>';
+
+        if (select.value === 'product') {
+            products.forEach(product => {
+                const option = document.createElement('option');
+                option.value = product.id;
+                option.textContent = `${product.name} - ${product.price}₴`;
+                option.dataset.price = product.price;
+                itemSelect.appendChild(option);
+            });
+            itemSelectContainer.style.display = 'block';
+        } else if (select.value === 'service') {
+            services.forEach(service => {
+                const option = document.createElement('option');
+                option.value = service.id;
+                option.textContent = `${service.name} - ${service.basePrice}₴`;
+                option.dataset.price = service.basePrice;
+                itemSelect.appendChild(option);
+            });
+            itemSelectContainer.style.display = 'block';
+        } else {
+            itemSelectContainer.style.display = 'none';
+        }
+    }
+
+    function handleItemSelect(select) {
+        const container = select.closest('.orderDetail');
+        const option = select.options[select.selectedIndex];
+        const price = parseFloat(option.dataset.price);
+
+        container.querySelector('.item-price').textContent = price.toFixed(2);
+        updateDetailTotal(container);
+    }
+
+    function updateDetailTotal(container) {
+        const price = parseFloat(container.querySelector('.item-price').textContent);
+        const quantity = parseInt(container.querySelector('.quantity').value);
+        const total = price * quantity;
+        container.querySelector('.detail-total').textContent = total.toFixed(2);
+        updateOrderTotal();
+    }
+
+    function updateOrderTotal() {
+        const details = document.querySelectorAll('.orderDetail');
+        let total = 0;
+        details.forEach(detail => {
+            const detailTotal = detail.querySelector('.detail-total');
+            if (detailTotal) {
+                total += parseFloat(detailTotal.textContent || 0);
+            }
+        });
+        document.getElementById('orderTotal').textContent = total.toFixed(2);
+    }
+
+    document.getElementById('orderForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const orderDetails = [];
+        document.querySelectorAll('.orderDetail').forEach(detail => {
+            const itemType = detail.querySelector('.item-type').value;
+            const itemSelect = detail.querySelector('.item-select');
+
+            if (itemType && itemSelect.value) {
+                const itemId = parseInt(itemSelect.value);
+                const quantity = parseInt(detail.querySelector('.quantity').value);
+                const price = parseFloat(detail.querySelector('.item-price').textContent);
+
+                let orderDetail = {
+                    quantity: quantity,
+                    price: price,
+                    totalPrice: price * quantity
+                };
+
+                if (itemType === 'product') {
+                    orderDetail.product = { id: itemId };
+                    orderDetail.service = null;
+                } else {
+                    orderDetail.product = null;
+                    orderDetail.service = { id: itemId };
+                }
+
+                orderDetails.push(orderDetail);
+            }
+        });
+
+        const orderData = {
+            order: {
+                branch: { id: parseInt(document.getElementById('branchSelect').value) },
+                status: 'NEW',
+                isUrgent: document.getElementById('isUrgent').value === 'true'
+            },
+            orderDetails: orderDetails
+        };
+
+        fetch('/api/orders', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(orderData),
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                document.getElementById('response').textContent = 'Order created successfully!';
+                document.getElementById('response').style.color = 'green';
+                document.getElementById('orderForm').reset();
+                document.getElementById('orderDetails').innerHTML = '';
+                updateOrderTotal();
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+                document.getElementById('response').textContent = 'Error creating order: ' + error.message;
+                document.getElementById('response').style.color = 'red';
+            });
+    });
+</script>
+</body>
+</html>

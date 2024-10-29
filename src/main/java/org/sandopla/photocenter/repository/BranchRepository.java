@@ -9,4 +9,6 @@ import java.util.List;
 @Repository
 public interface BranchRepository extends JpaRepository<Branch, Long> {
     List<Branch> findByType(Branch.BranchType type);
+    List<Branch> findByParentBranchId(Long parentId);
+    boolean existsByParentBranchId(Long parentId);
 }

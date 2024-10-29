@@ -8,11 +8,16 @@ public class HomeController {
 
     @GetMapping("/home")
     public String home() {
-        return "home";  // повертає шаблон home.html
+        return "home";
     }
 
     @GetMapping("/")
     public String index() {
         return "redirect:/home";
+    }
+
+    @GetMapping("/create-order")
+    public String createOrder() {
+        return "create-order";  // тепер повертаємо назву шаблону
     }
 }

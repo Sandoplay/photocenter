@@ -2,12 +2,17 @@ package org.sandopla.photocenter.service;
 
 import org.sandopla.photocenter.model.Order;
 import org.sandopla.photocenter.model.OrderDetail;
+import org.sandopla.photocenter.model.Client;
+import org.sandopla.photocenter.model.Branch;
 import org.sandopla.photocenter.repository.OrderRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class OrderService {
@@ -23,11 +28,15 @@ public class OrderService {
 
     @Transactional
     public Order createOrder(Order order, List<OrderDetail> orderDetails) {
+        // Зберігаємо замовлення
         Order savedOrder = orderRepository.save(order);
+
+        // Зберігаємо деталі замовлення
         for (OrderDetail detail : orderDetails) {
             detail.setOrder(savedOrder);
             orderDetailService.createOrderDetail(detail);
         }
+
         return savedOrder;
     }
 
@@ -40,18 +49,22 @@ public class OrderService {
         return orderRepository.findAll();
     }
 
+    public List<Order> getOrdersByClient(Client client) {
+        return orderRepository.findByClientOrderByOrderDateDesc(client);
+    }
+
     @Transactional
     public Order updateOrder(Long id, Order orderDetails, List<OrderDetail> newOrderDetails) {
         Order order = getOrderById(id);
-        // Update order fields
-        order.setClient(orderDetails.getClient());
+
+        // Оновлюємо основні дані замовлення
         order.setBranch(orderDetails.getBranch());
         order.setOrderDate(orderDetails.getOrderDate());
         order.setCompletionDate(orderDetails.getCompletionDate());
         order.setStatus(orderDetails.getStatus());
         order.setUrgent(orderDetails.isUrgent());
 
-        // Update order details
+        // Оновлюємо деталі замовлення
         List<OrderDetail> existingDetails = orderDetailService.getOrderDetailsByOrderId(id);
         existingDetails.forEach(detail -> orderDetailService.deleteOrderDetail(detail.getId()));
 
@@ -65,5 +78,40 @@ public class OrderService {
 
     public void deleteOrder(Long id) {
         orderRepository.deleteById(id);
+    }
+
+    public BigDecimal getTotalRevenue() {
+        List<Order> orders = orderRepository.findAll();
+        return orders.stream()
+                .map(Order::getTotalCost)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    public int getTodayOrdersCount(Branch branch) {
+        LocalDateTime startOfDay = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0);
+        LocalDateTime endOfDay = startOfDay.plusDays(1);
+        return orderRepository.countByBranchAndOrderDateBetween(branch, startOfDay, endOfDay);
+    }
+
+    public BigDecimal getBranchRevenue(Branch branch) {
+        List<Order> branchOrders = orderRepository.findByBranch(branch);
+        return branchOrders.stream()
+                .map(Order::getTotalCost)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    public List<Order> getLastOrders(int count) {
+        return orderRepository.findTop10ByOrderByOrderDateDesc();
+    }
+
+    public List<Order> getBranchOrdersByDate(Branch branch, LocalDateTime start, LocalDateTime end) {
+        return orderRepository.findByBranchAndOrderDateBetween(branch, start, end);
+    }
+
+    public List<Order> getRecentOrdersByClient(Client client, int limit) {
+        return orderRepository.findByClientOrderByOrderDateDesc(client)
+                .stream()
+                .limit(limit)
+                .collect(Collectors.toList());
     }
 }
