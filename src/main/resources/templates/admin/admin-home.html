@@ -143,6 +143,7 @@
             </div>
 
             <!-- Останні замовлення -->
+            <!-- Останні замовлення -->
             <div class="row mt-4">
                 <div class="col-12">
                     <div class="card">
@@ -169,20 +170,20 @@
                                         <td th:text="${order.client.name}">Клієнт</td>
                                         <td th:text="${#temporals.format(order.orderDate, 'dd.MM.yyyy HH:mm')}">01.01.2024</td>
                                         <td>
-                                    <span th:class="${'badge ' +
-                                        (order.status == 'NEW' ? 'bg-primary' : '') +
-                                        (order.status == 'IN_PROGRESS' ? 'bg-warning' : '') +
-                                        (order.status == 'COMPLETED' ? 'bg-success' : '') +
-                                        (order.status == 'CANCELLED' ? 'bg-danger' : '')}"
-                                          th:text="${order.status}">
-                                        Статус
-                                    </span>
+                                        <span th:class="${
+                                            (order.status == 'NEW' ? 'badge bg-primary text-dark' : '') +
+                                            (order.status == 'IN_PROGRESS' ? 'badge bg-warning text-dark' : '') +
+                                            (order.status == 'COMPLETED' ? 'badge bg-success text-white' : '') +
+                                            (order.status == 'CANCELLED' ? 'badge bg-danger text-white' : '')}"
+                                              th:text="${order.status}">
+                                            Статус
+                                        </span>
                                         </td>
                                         <td>
                                             <span th:if="${order.urgent}" class="badge bg-danger">Термінове</span>
                                             <span th:unless="${order.urgent}" class="badge bg-secondary">Звичайне</span>
                                         </td>
-                                        <td th:text="${#numbers.formatDecimal(order.totalCost, 1, 2) + '₴'}">100.00₴</td>
+                                        <td th:text="${order.totalCost + '₴'}">100.00₴</td>
                                         <td>
                                             <div class="btn-group">
                                                 <button class="btn btn-sm btn-outline-primary"

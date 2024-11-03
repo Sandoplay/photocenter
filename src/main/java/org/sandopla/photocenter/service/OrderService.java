@@ -154,4 +154,11 @@ public class OrderService {
                 PageRequest.of(0, count)
         );
     }
+
+    public List<Order> getLastOrdersForBranch(Branch branch, int count) {
+        return orderRepository.findTopNByBranchOrderByOrderDateDesc(
+                branch,
+                PageRequest.of(0, count)
+        );
+    }
 }
