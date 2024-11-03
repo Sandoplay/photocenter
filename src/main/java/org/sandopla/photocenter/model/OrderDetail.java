@@ -1,9 +1,9 @@
 package org.sandopla.photocenter.model;
 
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.Data;
-
 import java.math.BigDecimal;
 
 @Data
@@ -16,6 +16,7 @@ public class OrderDetail {
 
     @ManyToOne
     @JoinColumn(name = "order_id", nullable = false)
+    @JsonBackReference
     private Order order;
 
     @ManyToOne
@@ -29,15 +30,18 @@ public class OrderDetail {
     @Column(nullable = false)
     private Integer quantity;
 
-    @Column(nullable = false)
-    private BigDecimal price;
+    @Column(name = "price", nullable = false, precision = 10, scale = 2)
+    private BigDecimal price = BigDecimal.ZERO;  // Ціна за одиницю
 
-    @Column(name = "total_price", nullable = false)
-    private BigDecimal totalPrice;
+
+//    @Column(name = "total_price", nullable = false, precision = 10, scale = 2)
+//    private BigDecimal totalPrice = BigDecimal.ZERO;
 
     @PrePersist
     @PreUpdate
     private void calculateTotalPrice() {
-        this.totalPrice = this.price.multiply(BigDecimal.valueOf(this.quantity));
+        if (price != null && quantity != null) {
+            this.price = price.multiply(BigDecimal.valueOf(quantity));
+        }
     }
 }

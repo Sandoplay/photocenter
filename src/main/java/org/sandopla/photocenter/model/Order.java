@@ -1,9 +1,11 @@
 package org.sandopla.photocenter.model;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Data;
 import java.time.LocalDateTime;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 
 @Data
@@ -32,14 +34,15 @@ public class Order {
     @Enumerated(EnumType.STRING)
     private OrderStatus status;
 
-    @Column(name = "total_cost", nullable = false)
-    private BigDecimal totalCost;
-
     @Column(name = "is_urgent")
     private boolean isUrgent;
 
+    @Column(name = "total_cost", nullable = false, precision = 10, scale = 2)
+    private BigDecimal totalCost = BigDecimal.ZERO;
+
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<OrderDetail> orderDetails;
+    @JsonManagedReference
+    private List<OrderDetail> orderDetails = new ArrayList<>();
 
     public enum OrderStatus {
         NEW, IN_PROGRESS, COMPLETED, CANCELLED

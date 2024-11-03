@@ -28,19 +28,13 @@ public class OrderController {
     public ResponseEntity<?> createOrder(@RequestBody OrderWithDetails orderWithDetails,
                                          Authentication authentication) {
         try {
-            // Отримуємо поточного користувача
             Client client = (Client) authentication.getPrincipal();
-
-            // Встановлюємо клієнта для замовлення
             Order order = orderWithDetails.getOrder();
             order.setClient(client);
-
-            // Встановлюємо поточну дату
             order.setOrderDate(LocalDateTime.now());
-
-            // Встановлюємо початковий статус
             order.setStatus(Order.OrderStatus.NEW);
 
+            // Створюємо замовлення з деталями
             Order createdOrder = orderService.createOrder(order, orderWithDetails.getOrderDetails());
             return ResponseEntity.ok(createdOrder);
         } catch (Exception e) {

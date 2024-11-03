@@ -203,7 +203,7 @@
     let products = [];
     let services = [];
 
-    window.onload = function() {
+    window.onload = function () {
         loadBranches();
         loadProducts();
         loadServices();
@@ -306,80 +306,108 @@
         const details = document.querySelectorAll('.orderDetail');
         let total = 0;
         details.forEach(detail => {
-            const detailTotal = detail.querySelector('.detail-total');
-            if (detailTotal) {
-                total += parseFloat(detailTotal.textContent || 0);
-            }
+            total += parseFloat(detail.querySelector('.detail-total').textContent || 0);
         });
         document.getElementById('orderTotal').textContent = total.toFixed(2);
     }
 
-    document.getElementById('orderForm').addEventListener('submit', function(e) {
+    document.getElementById('orderForm').addEventListener('submit', async function(e) {
         e.preventDefault();
 
         const orderDetails = [];
-        document.querySelectorAll('.orderDetail').forEach(detail => {
+        const detailElements = document.querySelectorAll('.orderDetail');
+
+        for (const detail of detailElements) {
             const itemType = detail.querySelector('.item-type').value;
             const itemSelect = detail.querySelector('.item-select');
+            const quantity = parseInt(detail.querySelector('.quantity').value);
+            const unitPrice = parseFloat(detail.querySelector('.item-price').textContent);
+            const selectedId = parseInt(itemSelect.value);
 
-            if (itemType && itemSelect.value) {
-                const itemId = parseInt(itemSelect.value);
-                const quantity = parseInt(detail.querySelector('.quantity').value);
-                const price = parseFloat(detail.querySelector('.item-price').textContent);
-
-                let orderDetail = {
-                    quantity: quantity,
-                    price: price,
-                    totalPrice: price * quantity
-                };
-
-                if (itemType === 'product') {
-                    orderDetail.product = { id: itemId };
-                    orderDetail.service = null;
-                } else {
-                    orderDetail.product = null;
-                    orderDetail.service = { id: itemId };
-                }
-
-                orderDetails.push(orderDetail);
+            if (!itemType || !selectedId || !quantity) {
+                continue;
             }
-        });
+
+            const detailData = {
+                quantity: quantity,
+                price: unitPrice, // Змінили з unitPrice на price
+                product: itemType === 'product' ? { id: selectedId } : null,
+                service: itemType === 'service' ? { id: selectedId } : null
+            };
+
+            if (itemType === 'product') {
+                detailData.product = {
+                    id: selectedId
+                };
+                detailData.service = null;
+            } else if (itemType === 'service') {
+                detailData.product = null;
+                detailData.service = {
+                    id: selectedId
+                };
+            }
+
+            orderDetails.push(detailData);
+        }
+
+        // ... решта коду залишається без змін
+
+        if (orderDetails.length === 0) {
+            alert('Додайте хоча б один товар або послугу до замовлення');
+            return;
+        }
 
         const orderData = {
             order: {
-                branch: { id: parseInt(document.getElementById('branchSelect').value) },
+                branch: {
+                    id: parseInt(document.getElementById('branchSelect').value)
+                },
                 status: 'NEW',
                 isUrgent: document.getElementById('isUrgent').value === 'true'
             },
             orderDetails: orderDetails
         };
 
-        fetch('/api/orders', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(orderData),
-        })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.json();
-            })
-            .then(data => {
-                document.getElementById('response').textContent = 'Order created successfully!';
-                document.getElementById('response').style.color = 'green';
-                document.getElementById('orderForm').reset();
-                document.getElementById('orderDetails').innerHTML = '';
-                updateOrderTotal();
-            })
-            .catch((error) => {
-                console.error('Error:', error);
-                document.getElementById('response').textContent = 'Error creating order: ' + error.message;
-                document.getElementById('response').style.color = 'red';
+        console.log('Sending order data:', orderData);
+
+        try {
+            const response = await fetch('/api/orders', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(orderData)
             });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText || 'Помилка при створенні замовлення');
+            }
+
+            const result = await response.json();
+
+            const responseDiv = document.getElementById('response');
+            responseDiv.textContent = 'Замовлення успішно створено!';
+            responseDiv.className = 'alert alert-success';
+            responseDiv.style.display = 'block';
+
+            document.getElementById('orderForm').reset();
+            document.getElementById('orderDetails').innerHTML = '';
+            updateOrderTotal();
+
+            setTimeout(() => {
+                window.location.href = '/home';
+            }, 2000);
+
+        } catch (error) {
+            console.error('Error:', error);
+            const responseDiv = document.getElementById('response');
+            responseDiv.textContent = `Помилка: ${error.message}`;
+            responseDiv.className = 'alert alert-danger';
+            responseDiv.style.display = 'block';
+        }
     });
+</script>
 </script>
 </body>
 </html>

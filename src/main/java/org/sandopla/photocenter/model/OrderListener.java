@@ -13,7 +13,7 @@ public class OrderListener {
         BigDecimal totalCost = BigDecimal.ZERO;
         if (order.getOrderDetails() != null) {
             for (OrderDetail detail : order.getOrderDetails()) {
-                totalCost = totalCost.add(detail.getTotalPrice());
+                totalCost = totalCost.add(detail.getPrice());
             }
         }
         order.setTotalCost(totalCost);

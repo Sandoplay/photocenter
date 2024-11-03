@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -30,16 +31,46 @@ public class OrderService {
 
     @Transactional
     public Order createOrder(Order order, List<OrderDetail> orderDetails) {
-        // Зберігаємо замовлення
+        order.setTotalCost(BigDecimal.ZERO);
+        order.setOrderDetails(new ArrayList<>());
         Order savedOrder = orderRepository.save(order);
 
-        // Зберігаємо деталі замовлення
+        BigDecimal totalCost = BigDecimal.ZERO;
+
         for (OrderDetail detail : orderDetails) {
-            detail.setOrder(savedOrder);
-            orderDetailService.createOrderDetail(detail);
+            try {
+                detail.setOrder(savedOrder);
+
+                // Перевіряємо і конвертуємо значення
+                if (detail.getPrice() == null) {
+                    throw new IllegalArgumentException("Price is required");
+                }
+
+                // Явно конвертуємо в BigDecimal
+                detail.setPrice(new BigDecimal(detail.getPrice().toString()));
+
+                OrderDetail savedDetail = orderDetailService.createOrderDetail(detail);
+                savedOrder.getOrderDetails().add(savedDetail);
+
+                if (savedDetail.getPrice() != null) {
+                    totalCost = totalCost.add(savedDetail.getPrice());
+                }
+            } catch (Exception e) {
+                throw new RuntimeException("Error processing order detail: " + e.getMessage());
+            }
         }
 
-        return savedOrder;
+        savedOrder.setTotalCost(totalCost);
+        return orderRepository.save(savedOrder);
+    }
+
+    private void validateOrderDetail(OrderDetail detail) {
+        if (detail.getProduct() == null && detail.getService() == null) {
+            throw new IllegalArgumentException("OrderDetail must have either product or service");
+        }
+        if (detail.getQuantity() == null || detail.getQuantity() <= 0) {
+            throw new IllegalArgumentException("Quantity must be positive");
+        }
     }
 
     public Order getOrderById(Long id) {
