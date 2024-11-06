@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Замовлення - Адмін панель</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .status-badge {
+            padding: 0.5em 1em;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+        .status-NEW { background-color: #cfe2ff; color: #084298; }
+        .status-IN_PROGRESS { background-color: #fff3cd; color: #664d03; }
+        .status-COMPLETED { background-color: #d1e7dd; color: #0f5132; }
+        .status-CANCELLED { background-color: #f8d7da; color: #842029; }
+
+        .order-details {
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            padding: 1rem;
+            margin-top: 0.5rem;
+        }
+
+        .urgent-badge {
+            background-color: #dc3545;
+            color: white;
+            padding: 0.25em 0.5em;
+            border-radius: 4px;
+            font-size: 0.875em;
+        }
+    </style>
+</head>
+<body>
+<div class="container-fluid">
+    <div class="row">
+        <!-- Бічне меню -->
+        <nav class="col-md-2 d-none d-md-block bg-dark sidebar min-vh-100">
+            <div class="position-sticky">
+                <div class="p-3 text-white">
+                    <h5>Адмін панель</h5>
+                    <p class="small" th:text="${#authentication.principal.name}">Username</p>
+                </div>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="/admin">
+                            <i class="fas fa-home me-2"></i>
+                            Головна
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="/admin/branches">
+                            <i class="fas fa-store me-2"></i>
+                            Філії
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active text-white" href="/admin/orders">
+                            <i class="fas fa-shopping-cart me-2"></i>
+                            Замовлення
+                        </a>
+                    </li>
+                    <!-- Інші пункти меню... -->
+                </ul>
+            </div>
+        </nav>
+
+        <!-- Основний контент -->
+        <main class="col-md-10 ms-sm-auto px-4">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1>Управління замовленнями</h1>
+                <div class="btn-toolbar mb-2 mb-md-0">
+                    <div class="btn-group me-2">
+                        <button type="button" class="btn btn-outline-secondary" onclick="refreshOrders()">
+                            <i class="fas fa-sync-alt me-1"></i> Оновити
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Фільтри -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <select class="form-select" id="statusFilter">
+                        <option value="">Всі статуси</option>
+                        <option value="NEW">Нові</option>
+                        <option value="IN_PROGRESS">В обробці</option>
+                        <option value="COMPLETED">Виконані</option>
+                        <option value="CANCELLED">Скасовані</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select" id="urgencyFilter">
+                        <option value="">Вся терміновість</option>
+                        <option value="true">Термінові</option>
+                        <option value="false">Звичайні</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="searchInput" placeholder="Пошук за ID або ім'ям клієнта">
+                        <button class="btn btn-outline-secondary" type="button" onclick="applyFilters()">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Таблиця замовлень -->
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Дата створення</th>
+                        <th>Клієнт</th>
+                        <th>Філія</th>
+                        <th>Статус</th>
+                        <th>Сума</th>
+                        <th>Дії</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="order : ${orders}">
+                        <td>
+                            <span th:text="${order.id}"></span>
+                            <span th:if="${order.urgent}" class="urgent-badge ms-1" title="Термінове замовлення">
+                                <i class="fas fa-bolt"></i>
+                            </span>
+                        </td>
+                        <td th:text="${#temporals.format(order.orderDate, 'dd.MM.yyyy HH:mm')}">01.01.2024</td>
+                        <td th:text="${order.client.name}">Client Name</td>
+                        <td th:text="${order.branch.name}">Branch Name</td>
+                        <td>
+                            <span th:class="'status-badge status-' + ${order.status}" th:text="${order.status}">
+                                Status
+                            </span>
+                        </td>
+                        <td th:text="${order.totalCost + '₴'}">100.00₴</td>
+                        <td>
+                            <div class="btn-group">
+                                <button class="btn btn-sm btn-outline-primary"
+                                        th:onclick="'viewOrderDetails(' + ${order.id} + ')'"
+                                        title="Деталі">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button th:if="${order.status == 'NEW'}"
+                                        class="btn btn-sm btn-outline-warning"
+                                        th:onclick="'startProcessing(' + ${order.id} + ')'"
+                                        title="Почати обробку">
+                                    <i class="fas fa-play"></i>
+                                </button>
+                                <button th:if="${order.status == 'IN_PROGRESS'}"
+                                        class="btn btn-sm btn-outline-success"
+                                        th:onclick="'completeOrder(' + ${order.id} + ')'"
+                                        title="Завершити">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Модальне вікно для деталей замовлення -->
+            <div class="modal fade" id="orderDetailsModal" tabindex="-1">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Деталі замовлення #<span id="orderDetailId"></span></h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <h6>Інформація про клієнта</h6>
+                                    <p class="mb-1">Ім'я: <span id="clientName"></span></p>
+                                    <p class="mb-1">Email: <span id="clientEmail"></span></p>
+                                    <p>Телефон: <span id="clientPhone"></span></p>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6>Інформація про замовлення</h6>
+                                    <p class="mb-1">Дата створення: <span id="orderDate"></span></p>
+                                    <p class="mb-1">Статус: <span id="orderStatus"></span></p>
+                                    <p>Філія: <span id="orderBranch"></span></p>
+                                </div>
+                            </div>
+                            <h6>Позиції замовлення</h6>
+                            <div id="orderItems"></div>
+                            <div class="text-end mt-3">
+                                <h5>Загальна сума: <span id="orderTotal"></span>₴</h5>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+<script src="/js/orders.js"></script>
+</body>
+</html>

@@ -1,16 +1,18 @@
 package org.sandopla.photocenter.controller;
 
-import org.sandopla.photocenter.model.Client;
-import org.sandopla.photocenter.model.Role;
-import org.sandopla.photocenter.model.Branch;
+import org.sandopla.photocenter.model.*;
 import org.sandopla.photocenter.service.BranchService;
 import org.sandopla.photocenter.service.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+
+import java.util.List;
 
 @Controller
 @RequestMapping("/admin")
@@ -74,23 +76,23 @@ public class AdminWebController {
         return "admin/branches";
     }
 
-    @GetMapping("/orders")
-    public String orderManagement(Model model, Authentication authentication) {
-        Client client = (Client) authentication.getPrincipal();
-
-        if (client.getRole() == Role.OWNER) {
-            model.addAttribute("orders", orderService.getAllOrders());
-        } else {
-            Branch adminBranch = client.getBranch();
-            model.addAttribute("orders", orderService.getBranchOrdersByDate(
-                    adminBranch,
-                    java.time.LocalDateTime.now().minusDays(30),
-                    java.time.LocalDateTime.now()
-            ));
-        }
-
-        return "admin/orders";
-    }
+//    @GetMapping("/orders")
+//    public String orderManagement(Model model, Authentication authentication) {
+//        Client client = (Client) authentication.getPrincipal();
+//
+//        if (client.getRole() == Role.OWNER) {
+//            model.addAttribute("orders", orderService.getAllOrders());
+//        } else {
+//            Branch adminBranch = client.getBranch();
+//            model.addAttribute("orders", orderService.getBranchOrdersByDate(
+//                    adminBranch,
+//                    java.time.LocalDateTime.now().minusDays(30),
+//                    java.time.LocalDateTime.now()
+//            ));
+//        }
+//
+//        return "admin/orders";
+//    }
 
     @GetMapping("/products")
     public String productManagement(Model model) {
@@ -168,5 +170,47 @@ public class AdminWebController {
         }
 
         return "admin/statistics";
+    }
+    @GetMapping("/orders")
+    public String orderManagement(
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) Boolean urgent,
+            @RequestParam(required = false) String search,
+            @PageableDefault(size = 20) Pageable pageable,
+            Model model,
+            Authentication authentication) {
+
+        Client client = (Client) authentication.getPrincipal();
+
+        // Створюємо об'єкт фільтру
+        OrderFilter filter = new OrderFilter();
+        filter.setStatus(status != null ? Order.OrderStatus.valueOf(status) : null);
+        filter.setUrgent(urgent);
+        filter.setSearch(search);
+
+        // Отримуємо замовлення з урахуванням ролі користувача
+        List<Order> orders;
+        if (client.getRole() == Role.OWNER) {
+            orders = orderService.findAllWithFilters(filter, pageable);
+        } else {
+            orders = orderService.findByBranchWithFilters(client.getBranch(), filter, pageable);
+        }
+
+        // Додаємо статистику
+        model.addAttribute("orders", orders);
+        model.addAttribute("totalOrders", orders.size());
+        model.addAttribute("newOrders",
+                orders.stream().filter(o -> o.getStatus() == Order.OrderStatus.NEW).count());
+        model.addAttribute("inProgressOrders",
+                orders.stream().filter(o -> o.getStatus() == Order.OrderStatus.IN_PROGRESS).count());
+        model.addAttribute("completedOrders",
+                orders.stream().filter(o -> o.getStatus() == Order.OrderStatus.COMPLETED).count());
+
+        // Додаємо параметри фільтрації для відображення в UI
+        model.addAttribute("currentStatus", status);
+        model.addAttribute("currentUrgent", urgent);
+        model.addAttribute("currentSearch", search);
+
+        return "admin/orders-page";
     }
 }

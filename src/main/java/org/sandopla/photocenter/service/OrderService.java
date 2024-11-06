@@ -1,13 +1,13 @@
 package org.sandopla.photocenter.service;
 
-import org.sandopla.photocenter.model.Order;
-import org.sandopla.photocenter.model.OrderDetail;
-import org.sandopla.photocenter.model.Client;
-import org.sandopla.photocenter.model.Branch;
+import org.sandopla.photocenter.model.*;
 import org.sandopla.photocenter.repository.OrderRepository;
+import org.sandopla.photocenter.repository.specifications.OrderSpecifications;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -160,5 +160,34 @@ public class OrderService {
                 branch,
                 PageRequest.of(0, count)
         );
+    }
+
+    public List<Order> findAllWithFilters(OrderFilter filter, Pageable pageable) {
+        Specification<Order> spec = buildSpecification(filter);
+        return orderRepository.findAll(spec, pageable).getContent();
+    }
+
+    public List<Order> findByBranchWithFilters(Branch branch, OrderFilter filter, Pageable pageable) {
+        Specification<Order> spec = Specification.where(OrderSpecifications.belongsToBranch(branch));
+        spec = spec.and(buildSpecification(filter));
+        return orderRepository.findAll(spec, pageable).getContent();
+    }
+
+    private Specification<Order> buildSpecification(OrderFilter filter) {
+        Specification<Order> spec = Specification.where(null);
+
+        if (filter.getStatus() != null) {
+            spec = spec.and(OrderSpecifications.hasStatus(filter.getStatus()));
+        }
+
+        if (filter.getUrgent() != null) {
+            spec = spec.and(OrderSpecifications.isUrgent(filter.getUrgent()));
+        }
+
+        if (filter.getSearch() != null && !filter.getSearch().isEmpty()) {
+            spec = spec.and(OrderSpecifications.matchesSearch(filter.getSearch()));
+        }
+
+        return spec;
     }
 }
