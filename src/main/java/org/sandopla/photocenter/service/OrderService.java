@@ -137,6 +137,18 @@ public class OrderService {
         return orderRepository.findTop10ByOrderByOrderDateDesc();
     }
 
+    @Transactional
+    public Order updateOrderStatus(Long orderId, Order.OrderStatus newStatus) {
+        Order order = getOrderById(orderId);
+
+        if (newStatus == Order.OrderStatus.COMPLETED) {
+            order.setCompletionDate(LocalDateTime.now());
+        }
+
+        order.setStatus(newStatus);
+        return orderRepository.save(order);
+    }
+
     public List<Order> getBranchOrdersByDate(Branch branch, LocalDateTime start, LocalDateTime end) {
         return orderRepository.findByBranchAndOrderDateBetween(branch, start, end);
     }

@@ -37,11 +37,11 @@ public class OrderDetail {
 //    @Column(name = "total_price", nullable = false, precision = 10, scale = 2)
 //    private BigDecimal totalPrice = BigDecimal.ZERO;
 
-    @PrePersist
-    @PreUpdate
-    private void calculateTotalPrice() {
-        if (price != null && quantity != null) {
-            this.price = price.multiply(BigDecimal.valueOf(quantity));
-        }
-    }
+//    @PrePersist
+//    @PreUpdate
+//    private void calculateTotalPrice() {
+//        if (price != null && quantity != null) {
+//            this.price = price.multiply(BigDecimal.valueOf(quantity));
+//        }
+//    }
 }

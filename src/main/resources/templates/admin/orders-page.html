@@ -119,40 +119,44 @@
                         <th>Філія</th>
                         <th>Статус</th>
                         <th>Сума</th>
-                        <th>Дії</th>
+                        <th>Дії</th>  <!-- Ця колонка нас цікавить -->
                     </tr>
                     </thead>
                     <tbody>
                     <tr th:each="order : ${orders}">
                         <td>
                             <span th:text="${order.id}"></span>
-                            <span th:if="${order.urgent}" class="urgent-badge ms-1" title="Термінове замовлення">
-                                <i class="fas fa-bolt"></i>
-                            </span>
+                            <span th:if="${order.urgent}" class="urgent-badge ms-1">
+                    <i class="fas fa-bolt"></i>
+                </span>
                         </td>
-                        <td th:text="${#temporals.format(order.orderDate, 'dd.MM.yyyy HH:mm')}">01.01.2024</td>
-                        <td th:text="${order.client.name}">Client Name</td>
-                        <td th:text="${order.branch.name}">Branch Name</td>
+                        <td th:text="${#temporals.format(order.orderDate, 'dd.MM.yyyy HH:mm')}"></td>
+                        <td th:text="${order.client.name}"></td>
+                        <td th:text="${order.branch.name}"></td>
                         <td>
-                            <span th:class="'status-badge status-' + ${order.status}" th:text="${order.status}">
-                                Status
-                            </span>
+                <span th:class="'status-badge status-' + ${order.status}"
+                      th:text="${order.status}">
+                </span>
                         </td>
-                        <td th:text="${order.totalCost + '₴'}">100.00₴</td>
+                        <td th:text="${order.totalCost + '₴'}"></td>
+                        <!-- Ось тут має бути наша колонка з кнопками -->
                         <td>
+                            <!-- Замініть все, що тут є, на новий код кнопок -->
                             <div class="btn-group">
                                 <button class="btn btn-sm btn-outline-primary"
                                         th:onclick="'viewOrderDetails(' + ${order.id} + ')'"
                                         title="Деталі">
                                     <i class="fas fa-eye"></i>
                                 </button>
-                                <button th:if="${order.status == 'NEW'}"
+
+                                <button th:if="${order.status.name() == 'NEW'}"
                                         class="btn btn-sm btn-outline-warning"
                                         th:onclick="'startProcessing(' + ${order.id} + ')'"
                                         title="Почати обробку">
                                     <i class="fas fa-play"></i>
                                 </button>
-                                <button th:if="${order.status == 'IN_PROGRESS'}"
+
+                                <button th:if="${order.status.name() == 'IN_PROGRESS'}"
                                         class="btn btn-sm btn-outline-success"
                                         th:onclick="'completeOrder(' + ${order.id} + ')'"
                                         title="Завершити">
@@ -202,6 +206,141 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
-<script src="/js/orders.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Ініціалізація Bootstrap модального вікна
+        const orderDetailsModal = new bootstrap.Modal(document.getElementById('orderDetailsModal'));
+
+        // Робимо модальне вікно доступним глобально
+        window.orderDetailsModal = orderDetailsModal;
+    });
+
+    function startProcessing(orderId) {
+        if (confirm('Почати обробку замовлення?')) {
+            updateOrderStatus(orderId, 'IN_PROGRESS');
+        }
+    }
+
+    function completeOrder(orderId) {
+        if (confirm('Позначити замовлення як виконане?')) {
+            updateOrderStatus(orderId, 'COMPLETED');
+        }
+    }
+
+    function updateOrderStatus(orderId, status) {
+        fetch(`/api/orders/${orderId}/status`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ status: status })
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                window.location.reload();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Помилка при оновленні статусу замовлення');
+            });
+    }
+
+    function viewOrderDetails(orderId) {
+        fetch(`/api/orders/${orderId}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(order => {
+                // Заповнюємо дані
+                document.getElementById('orderDetailId').textContent = order.id;
+                document.getElementById('clientName').textContent = order.client.name;
+                document.getElementById('clientEmail').textContent = order.client.email;
+                document.getElementById('clientPhone').textContent = order.client.phoneNumber;
+                document.getElementById('orderDate').textContent =
+                    new Date(order.orderDate).toLocaleString('uk-UA');
+                document.getElementById('orderStatus').textContent = order.status;
+                document.getElementById('orderBranch').textContent = order.branch.name;
+                document.getElementById('orderTotal').textContent = order.totalCost;
+
+                // Заповнюємо деталі замовлення
+                const itemsContainer = document.getElementById('orderItems');
+                itemsContainer.innerHTML = '';
+
+                order.orderDetails.forEach(detail => {
+                    const item = document.createElement('div');
+                    item.className = 'order-details';
+
+                    const itemName = detail.product ?
+                        detail.product.name :
+                        detail.service.name;
+
+                    item.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>${itemName}</strong>
+                            <div class="text-muted">
+                                Кількість: ${detail.quantity}
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <div>${detail.price}₴</div>
+                        </div>
+                    </div>
+                `;
+
+                    itemsContainer.appendChild(item);
+                });
+
+                // Показуємо модальне вікно
+                window.orderDetailsModal.show();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Помилка при завантаженні деталей замовлення');
+            });
+    }
+
+    function refreshOrders() {
+        window.location.reload();
+    }
+
+    // Функція для фільтрації
+    function applyFilters() {
+        const status = document.getElementById('statusFilter').value;
+        const urgent = document.getElementById('urgencyFilter').value;
+        const search = document.getElementById('searchInput').value;
+
+        const params = new URLSearchParams();
+        if (status) params.append('status', status);
+        if (urgent) params.append('urgent', urgent);
+        if (search) params.append('search', search);
+
+        window.location.href = `/admin/orders?${params.toString()}`;
+    }
+
+    // Налаштування обробників подій для фільтрів
+    document.getElementById('statusFilter')?.addEventListener('change', applyFilters);
+    document.getElementById('urgencyFilter')?.addEventListener('change', applyFilters);
+    document.getElementById('searchInput')?.addEventListener('input',
+        debounce(applyFilters, 500)
+    );
+
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+</script>
 </body>
 </html>

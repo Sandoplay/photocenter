@@ -1,12 +1,11 @@
 package org.sandopla.photocenter.controller;
 
-import org.sandopla.photocenter.model.Client;
-import org.sandopla.photocenter.model.Order;
-import org.sandopla.photocenter.model.OrderDetail;
+import org.sandopla.photocenter.model.*;
 import org.sandopla.photocenter.service.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -44,16 +43,25 @@ public class OrderController {
     }
 
     @GetMapping("/{id}")
+    // Додаємо анотацію для безпеки
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
     public ResponseEntity<Order> getOrderById(@PathVariable Long id, Authentication authentication) {
-        Client client = (Client) authentication.getPrincipal();
-        Order order = orderService.getOrderById(id);
+        try {
+            Client client = (Client) authentication.getPrincipal();
+            Order order = orderService.getOrderById(id);
 
-        // Перевіряємо, чи це замовлення належить поточному користувачу
-        if (!order.getClient().getId().equals(client.getId())) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            // Перевіряємо права доступу
+            if (client.getRole() == Role.OWNER ||
+                    (client.getRole() == Role.ADMIN &&
+                            order.getBranch().getId().equals(client.getBranch().getId()))) {
+                return ResponseEntity.ok(order);
+            } else {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            }
+
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
         }
-
-        return ResponseEntity.ok(order);
     }
 
     @GetMapping("/my")
@@ -93,6 +101,33 @@ public class OrderController {
         orderService.deleteOrder(id);
         return ResponseEntity.ok().build();
     }
+
+    @PutMapping("/{id}/status")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
+    public ResponseEntity<?> updateOrderStatus(
+            @PathVariable Long id,
+            @RequestBody OrderStatusUpdate statusUpdate,
+            Authentication authentication) {
+        try {
+            Client client = (Client) authentication.getPrincipal();
+            Order order = orderService.getOrderById(id);
+
+            // Перевірка прав доступу
+            if (client.getRole() != Role.OWNER &&
+                    !order.getBranch().getId().equals(client.getBranch().getId())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body("You don't have permission to update this order");
+            }
+
+            Order updatedOrder = orderService.updateOrderStatus(id, statusUpdate.getStatus());
+            return ResponseEntity.ok(updatedOrder);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error updating order status: " + e.getMessage());
+        }
+    }
+
+
 }
 
 class OrderWithDetails {

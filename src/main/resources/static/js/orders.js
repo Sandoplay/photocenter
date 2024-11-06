@@ -41,21 +41,35 @@ function updateOrderStatus(orderId, status) {
         });
 }
 
+let ordersModal;
+
+document.addEventListener('DOMContentLoaded', function() {
+    ordersModal = new bootstrap.Modal(document.getElementById('orderDetailsModal'));
+});
+
 function viewOrderDetails(orderId) {
     fetch(`/api/orders/${orderId}`)
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
         .then(order => {
             document.getElementById('orderDetailId').textContent = order.id;
             document.getElementById('clientName').textContent = order.client.name;
             document.getElementById('clientEmail').textContent = order.client.email;
-            document.getElementById('clientPhone').textContent = order.client.phoneNumber;
-            document.getElementById('orderDate').textContent =
-                new Date(order.orderDate).toLocaleString('uk-UA');
-            document.getElementById('orderStatus').textContent = order.status;
-            document.getElementById('orderBranch').textContent = order.branch.name;
-            document.getElementById('orderTotal').textContent = order.totalCost;
+            document.getElementById('clientPhone').textContent = order.client.phoneNumber || 'Не вказано';
 
-            // Відображення позицій замовлення
+            const orderDate = new Date(order.orderDate).toLocaleString('uk-UA');
+            document.getElementById('orderDate').textContent = orderDate;
+
+            const statusElement = document.getElementById('orderStatus');
+            statusElement.textContent = order.status;
+            statusElement.className = 'status-badge status-' + order.status;
+
+            document.getElementById('orderBranch').textContent = order.branch.name;
+
             const itemsContainer = document.getElementById('orderItems');
             itemsContainer.innerHTML = '';
 
@@ -84,6 +98,9 @@ function viewOrderDetails(orderId) {
                 itemsContainer.appendChild(item);
             });
 
+            document.getElementById('orderTotal').textContent = order.totalCost;
+
+            // Використовуємо збережену змінну модального вікна
             ordersModal.show();
         })
         .catch(error => {
