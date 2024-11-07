@@ -1,5 +1,6 @@
 package org.sandopla.photocenter.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.ToString;
@@ -24,7 +25,8 @@ public class Branch {
     @Column(nullable = false)
     private BranchType type;
 
-    @ToString.Exclude  // Додайте це
+    @ToString.Exclude
+    @JsonBackReference
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_branch_id")
     private Branch parentBranch;

@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -24,4 +25,13 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
 
     @Query("SELECT o FROM Order o WHERE o.branch = :branch ORDER BY o.orderDate DESC")
     List<Order> findTopNByBranchOrderByOrderDateDesc(@Param("branch") Branch branch, Pageable pageable);
+
+    @Query("SELECT SUM(o.totalCost) FROM Order o WHERE o.orderDate BETWEEN :start AND :end")
+    BigDecimal sumTotalCostByOrderDateBetween(LocalDateTime start, LocalDateTime end);
+
+    @Query("SELECT SUM(o.totalCost) FROM Order o WHERE o.branch = :branch AND o.orderDate BETWEEN :start AND :end")
+    BigDecimal sumTotalCostByBranchAndOrderDateBetween(Branch branch, LocalDateTime start, LocalDateTime end);
+
+    @Query("SELECT SUM(o.totalCost) FROM Order o WHERE o.branch = :branch AND o.isUrgent = :isUrgent AND o.orderDate BETWEEN :start AND :end")
+    BigDecimal sumTotalCostByBranchAndIsUrgentAndOrderDateBetween(Branch branch, boolean isUrgent, LocalDateTime start, LocalDateTime end);
 }

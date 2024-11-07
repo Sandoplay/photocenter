@@ -256,18 +256,18 @@
                 return response.json();
             })
             .then(order => {
-                // Заповнюємо дані
+                // Оновлюємо доступ до полів відповідно до структури OrderResponse
                 document.getElementById('orderDetailId').textContent = order.id;
-                document.getElementById('clientName').textContent = order.client.name;
-                document.getElementById('clientEmail').textContent = order.client.email;
-                document.getElementById('clientPhone').textContent = order.client.phoneNumber;
+                document.getElementById('clientName').textContent = order.clientName;
+                document.getElementById('clientEmail').textContent = order.clientEmail || 'Не вказано';
+                document.getElementById('clientPhone').textContent = order.clientPhone || 'Не вказано';
                 document.getElementById('orderDate').textContent =
                     new Date(order.orderDate).toLocaleString('uk-UA');
                 document.getElementById('orderStatus').textContent = order.status;
-                document.getElementById('orderBranch').textContent = order.branch.name;
+                document.getElementById('orderBranch').textContent = order.branchName;
                 document.getElementById('orderTotal').textContent = order.totalCost;
 
-                // Заповнюємо деталі замовлення
+                // Відображення позицій замовлення
                 const itemsContainer = document.getElementById('orderItems');
                 itemsContainer.innerHTML = '';
 
@@ -275,9 +275,7 @@
                     const item = document.createElement('div');
                     item.className = 'order-details';
 
-                    const itemName = detail.product ?
-                        detail.product.name :
-                        detail.service.name;
+                    const itemName = detail.productName || detail.serviceName;
 
                     item.innerHTML = `
                     <div class="d-flex justify-content-between align-items-center">

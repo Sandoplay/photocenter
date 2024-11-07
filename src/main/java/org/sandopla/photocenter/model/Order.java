@@ -1,5 +1,6 @@
 package org.sandopla.photocenter.model;
 
+import com.fasterxml.jackson.annotation.JsonIdentityReference;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Data;
@@ -17,13 +18,20 @@ public class Order {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "client_id", nullable = false)
+    @JsonIdentityReference(alwaysAsId = true)  // Додано
     private Client client;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "branch_id", nullable = false)
+    @JsonIdentityReference(alwaysAsId = true)  // Додано
     private Branch branch;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "processing_branch_id", nullable = false)
+    @JsonIdentityReference(alwaysAsId = true)  // Додано
+    private Branch processingBranch;
 
     @Column(name = "order_date", nullable = false)
     private LocalDateTime orderDate;

@@ -4,6 +4,8 @@ package org.sandopla.photocenter.model;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.ToString;
+
 import java.math.BigDecimal;
 
 @Data
@@ -16,6 +18,7 @@ public class OrderDetail {
 
     @ManyToOne
     @JoinColumn(name = "order_id", nullable = false)
+    @ToString.Exclude
     @JsonBackReference
     private Order order;
 

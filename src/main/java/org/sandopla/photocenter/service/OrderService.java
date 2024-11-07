@@ -35,7 +35,19 @@ public class OrderService {
         order.setOrderDetails(new ArrayList<>());
         Order savedOrder = orderRepository.save(order);
 
+
         BigDecimal totalCost = BigDecimal.ZERO;
+
+        Branch orderBranch = order.getBranch();
+
+//        // Якщо замовлення створюється в кіоску
+//        if (orderBranch.getType() == Branch.BranchType.KIOSK) {
+//            // Встановлюємо філію, яка буде виконувати замовлення
+//            order.setProcessingBranch(orderBranch.getParentBranch());
+//        } else {
+//            // Якщо не кіоск - та ж філія виконує
+//            order.setProcessingBranch(orderBranch);
+//        }
 
         for (OrderDetail detail : orderDetails) {
             try {
@@ -147,6 +159,22 @@ public class OrderService {
 
         order.setStatus(newStatus);
         return orderRepository.save(order);
+    }
+
+    // Загальна виручка
+    public BigDecimal getTotalRevenue(LocalDateTime start, LocalDateTime end) {
+        return orderRepository.sumTotalCostByOrderDateBetween(start, end);
+    }
+
+    // Виручка по філії
+    public BigDecimal getBranchRevenue(Branch branch, LocalDateTime start, LocalDateTime end) {
+        return orderRepository.sumTotalCostByBranchAndOrderDateBetween(branch, start, end);
+    }
+
+    // Виручка по типу замовлення (термінові/звичайні)
+    public BigDecimal getRevenueByUrgency(Branch branch, boolean isUrgent, LocalDateTime start, LocalDateTime end) {
+        return orderRepository.sumTotalCostByBranchAndIsUrgentAndOrderDateBetween(
+                branch, isUrgent, start, end);
     }
 
     public List<Order> getBranchOrdersByDate(Branch branch, LocalDateTime start, LocalDateTime end) {
