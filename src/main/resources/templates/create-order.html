@@ -5,7 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Створення замовлення - Фотоцентр</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet">
     <style>
         body {
             background-color: #f8f9fa;
@@ -128,12 +130,13 @@
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label">Термінове замовлення:</label>
-                    <select id="isUrgent" required class="form-select">
+                    <label for="isUrgent" class="form-label">Термінове замовлення:</label>
+                    <select id="isUrgent" class="form-select" required>
                         <option value="false">Ні</option>
                         <option value="true">Так</option>
                     </select>
                 </div>
+
             </div>
         </div>
 
@@ -148,7 +151,7 @@
                 </button>
 
                 <div class="total-section mt-4">
-                    <h5 class="mb-0">Загальна сума: <span id="orderTotal">0.00</span>₴</h5>
+                    <h5 class="mb-0">Загальна сума: <span id="orderTotal">0.00</span></h5>
                 </div>
             </div>
         </div>
@@ -288,87 +291,136 @@
     function handleItemSelect(select) {
         const container = select.closest('.orderDetail');
         const option = select.options[select.selectedIndex];
-        const price = parseFloat(option.dataset.price);
+        const basePrice = parseFloat(option.dataset.price);
 
-        container.querySelector('.item-price').textContent = price.toFixed(2);
+        container.querySelector('.item-price').textContent = basePrice.toFixed(2);
         updateDetailTotal(container);
     }
 
+
+    // Оновлюємо функцію updateDetailTotal
     function updateDetailTotal(container) {
-        const price = parseFloat(container.querySelector('.item-price').textContent);
+        const basePrice = parseFloat(container.querySelector('.item-price').textContent);
         const quantity = parseInt(container.querySelector('.quantity').value);
-        const total = price * quantity;
-        container.querySelector('.detail-total').textContent = total.toFixed(2);
+        const itemType = container.querySelector('.item-type').value;
+        const isUrgent = document.getElementById('isUrgent').value === 'true';
+
+        const baseTotal = basePrice * quantity;
+        let urgencyFee = 0;
+        let displayTotal = baseTotal;
+
+        if (isUrgent) {
+            if (itemType === 'product') {
+                urgencyFee = baseTotal * 0.10;
+            } else if (itemType === 'service') {
+                // Отримуємо сервіс і його множник
+                const selectedId = parseInt(container.querySelector('.item-select').value);
+                const selectedService = services.find(s => s.id === selectedId);
+                if (selectedService) {
+                    // Використовуємо правильний множник з сервісу
+                    displayTotal = baseTotal * selectedService.urgentPriceMultiplier;
+                    urgencyFee = displayTotal - baseTotal;
+                }
+            }
+        }
+
+        container.querySelector('.detail-total').innerHTML = `
+        <div>Базова ціна: ${baseTotal.toFixed(2)}₴</div>
+        ${urgencyFee > 0 ? `<div>Додатково за терміновість: ${urgencyFee.toFixed(2)}₴</div>` : ''}
+        <div><strong>Загальна сума: ${displayTotal.toFixed(2)}₴</strong></div>
+    `;
+
         updateOrderTotal();
     }
 
+    // Оновлюємо функцію updateOrderTotal
     function updateOrderTotal() {
         const details = document.querySelectorAll('.orderDetail');
-        let total = 0;
+        let baseTotal = 0;
+        let urgencyFeeTotal = 0;
+        const isUrgent = document.getElementById('isUrgent').value === 'true';
+
         details.forEach(detail => {
-            total += parseFloat(detail.querySelector('.detail-total').textContent || 0);
+            const basePrice = parseFloat(detail.querySelector('.item-price').textContent) || 0;
+            const quantity = parseInt(detail.querySelector('.quantity').value) || 0;
+            const itemType = detail.querySelector('.item-type').value;
+
+            const itemBaseTotal = basePrice * quantity;
+            baseTotal += itemBaseTotal;
+
+            if (isUrgent) {
+                if (itemType === 'product') {
+                    urgencyFeeTotal += itemBaseTotal * 0.10;
+                } else if (itemType === 'service') {
+                    urgencyFeeTotal += itemBaseTotal * 0.50;
+                }
+            }
         });
-        document.getElementById('orderTotal').textContent = total.toFixed(2);
+
+        const totalAmount = baseTotal + urgencyFeeTotal;
+
+        // Використовуємо той самий формат відображення
+        const orderTotalElement = document.getElementById('orderTotal');
+        if (isUrgent && urgencyFeeTotal > 0) {
+            orderTotalElement.innerHTML = `
+            <div class="price-line base-price">Базова ціна: ${baseTotal.toFixed(2)}₴</div>
+            <div class="price-line urgency-fee">Додатково за терміновість: ${urgencyFeeTotal.toFixed(2)}₴</div>
+            <div class="price-line total-price"><strong>Загальна сума: ${totalAmount.toFixed(2)}₴</strong></div>
+        `;
+        } else {
+            orderTotalElement.innerHTML = `
+            <div class="price-line total-price"><strong>${baseTotal.toFixed(2)}₴</strong></div>
+        `;
+        }
     }
+
 
     document.getElementById('orderForm').addEventListener('submit', async function(e) {
         e.preventDefault();
 
-        const orderDetails = [];
+        const isUrgent = document.getElementById('isUrgent').value === 'true';
+        console.log('Is order urgent:', isUrgent);
+
         const detailElements = document.querySelectorAll('.orderDetail');
+        const detail = detailElements[0];
+        const itemType = detail.querySelector('.item-type').value;
+        const itemSelect = detail.querySelector('.item-select');
+        const quantity = parseInt(detail.querySelector('.quantity').value);
+        const selectedId = parseInt(itemSelect.value);
+        const basePrice = parseFloat(itemSelect.options[itemSelect.selectedIndex].dataset.price);
 
-        for (const detail of detailElements) {
-            const itemType = detail.querySelector('.item-type').value;
-            const itemSelect = detail.querySelector('.item-select');
-            const quantity = parseInt(detail.querySelector('.quantity').value);
-            const unitPrice = parseFloat(detail.querySelector('.item-price').textContent);
-            const selectedId = parseInt(itemSelect.value);
+        // Обчислюємо фінальну ціну
+        let finalPrice = basePrice;
+        let totalCost = basePrice;
 
-            if (!itemType || !selectedId || !quantity) {
-                continue;
+        if (isUrgent && itemType === 'service') {
+            const selectedService = services.find(s => s.id === selectedId);
+            if (selectedService) {
+                // Застосовуємо множник до загальної суми
+                totalCost = basePrice * selectedService.urgentPriceMultiplier * quantity;
             }
-
-            const detailData = {
-                quantity: quantity,
-                price: unitPrice, // Змінили з unitPrice на price
-                product: itemType === 'product' ? { id: selectedId } : null,
-                service: itemType === 'service' ? { id: selectedId } : null
-            };
-
-            if (itemType === 'product') {
-                detailData.product = {
-                    id: selectedId
-                };
-                detailData.service = null;
-            } else if (itemType === 'service') {
-                detailData.product = null;
-                detailData.service = {
-                    id: selectedId
-                };
-            }
-
-            orderDetails.push(detailData);
+        } else {
+            totalCost = basePrice * quantity;
         }
 
-        // ... решта коду залишається без змін
-
-        if (orderDetails.length === 0) {
-            alert('Додайте хоча б один товар або послугу до замовлення');
-            return;
-        }
+        const orderDetails = [{
+            quantity: quantity,
+            price: basePrice,  // Базова ціна в деталях
+            product: itemType === 'product' ? { id: selectedId } : null,
+            service: itemType === 'service' ? { id: selectedId } : null
+        }];
 
         const orderData = {
             order: {
-                branch: {
-                    id: parseInt(document.getElementById('branchSelect').value)
-                },
+                branch: { id: parseInt(document.getElementById('branchSelect').value) },
                 status: 'NEW',
-                isUrgent: document.getElementById('isUrgent').value === 'true'
+                urgent: isUrgent,
+                totalCost: totalCost.toFixed(2)  // Загальна сума з урахуванням множника
             },
             orderDetails: orderDetails
         };
 
-        console.log('Sending order data:', orderData);
+        console.log('Final order data:', orderData);
 
         try {
             const response = await fetch('/api/orders', {
@@ -407,7 +459,36 @@
             responseDiv.style.display = 'block';
         }
     });
-</script>
+
+    // Додаємо обробник зміни статусу терміновості для оновлення відображення
+    document.getElementById('isUrgent').addEventListener('change', function() {
+        const isUrgent = this.value === 'true';
+
+        document.querySelectorAll('.orderDetail').forEach(detail => {
+            const itemSelect = detail.querySelector('.item-select');
+            const itemType = detail.querySelector('.item-type').value;
+
+            if (itemSelect.value) {
+                const basePrice = parseFloat(itemSelect.options[itemSelect.selectedIndex].dataset.price);
+                const priceContainer = detail.querySelector('.price-display');
+
+                // Тепер показуємо тільки базову ціну
+                if (itemType === 'product' || itemType === 'service') {
+                    priceContainer.innerHTML = `
+                    <div>Базова ціна: ${basePrice.toFixed(2)}₴</div>
+                    <span class="item-price" style="display: none;">${basePrice.toFixed(2)}</span>
+                    <div class="detail-total">Очікувана сума: 0.00₴</div>
+                `;
+                }
+
+                updateDetailTotal(detail);
+            }
+        });
+
+        updateOrderTotal();
+    });
+
+
 </script>
 </body>
 </html>

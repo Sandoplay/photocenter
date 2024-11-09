@@ -126,9 +126,9 @@
                     <tr th:each="order : ${orders}">
                         <td>
                             <span th:text="${order.id}"></span>
-                            <span th:if="${order.urgent}" class="urgent-badge ms-1">
-                    <i class="fas fa-bolt"></i>
-                </span>
+                            <span th:if="${order.isUrgent}" class="badge bg-danger ms-1" title="Термінове">
+            <i class="fas fa-bolt"></i>
+        </span>
                         </td>
                         <td th:text="${#temporals.format(order.orderDate, 'dd.MM.yyyy HH:mm')}"></td>
                         <td th:text="${order.client.name}"></td>
@@ -141,7 +141,6 @@
                         <td th:text="${order.totalCost + '₴'}"></td>
                         <!-- Ось тут має бути наша колонка з кнопками -->
                         <td>
-                            <!-- Замініть все, що тут є, на новий код кнопок -->
                             <div class="btn-group">
                                 <button class="btn btn-sm btn-outline-primary"
                                         th:onclick="'viewOrderDetails(' + ${order.id} + ')'"
@@ -149,6 +148,7 @@
                                     <i class="fas fa-eye"></i>
                                 </button>
 
+                                <!-- Кнопка початку обробки - тільки для нових замовлень -->
                                 <button th:if="${order.status.name() == 'NEW'}"
                                         class="btn btn-sm btn-outline-warning"
                                         th:onclick="'startProcessing(' + ${order.id} + ')'"
@@ -156,11 +156,20 @@
                                     <i class="fas fa-play"></i>
                                 </button>
 
+                                <!-- Кнопка завершення - тільки для замовлень в обробці -->
                                 <button th:if="${order.status.name() == 'IN_PROGRESS'}"
                                         class="btn btn-sm btn-outline-success"
                                         th:onclick="'completeOrder(' + ${order.id} + ')'"
                                         title="Завершити">
                                     <i class="fas fa-check"></i>
+                                </button>
+
+                                <!-- Додаємо кнопку скасування -->
+                                <button th:if="${order.status.name() != 'COMPLETED' && order.status.name() != 'CANCELLED'}"
+                                        class="btn btn-sm btn-outline-danger"
+                                        th:onclick="'cancelOrder(' + ${order.id} + ')'"
+                                        title="Скасувати">
+                                    <i class="fas fa-times"></i>
                                 </button>
                             </div>
                         </td>
@@ -189,7 +198,8 @@
                                     <h6>Інформація про замовлення</h6>
                                     <p class="mb-1">Дата створення: <span id="orderDate"></span></p>
                                     <p class="mb-1">Статус: <span id="orderStatus"></span></p>
-                                    <p>Філія: <span id="orderBranch"></span></p>
+                                    <p class="mb-1">Філія: <span id="orderBranch"></span></p>
+                                    <p class="mb-1">Термінове: <span id="orderUrgent"></span></p>
                                 </div>
                             </div>
                             <h6>Позиції замовлення</h6>
@@ -227,6 +237,13 @@
         }
     }
 
+    function cancelOrder(orderId) {
+        if (confirm('Ви впевнені, що хочете скасувати це замовлення?')) {
+            updateOrderStatus(orderId, 'CANCELLED');
+        }
+    }
+
+    // Оновлюємо функцію оновлення статусу, щоб показувати більш детальні повідомлення про помилки
     function updateOrderStatus(orderId, status) {
         fetch(`/api/orders/${orderId}/status`, {
             method: 'PUT',
@@ -237,26 +254,33 @@
         })
             .then(response => {
                 if (!response.ok) {
-                    throw new Error('Network response was not ok');
+                    return response.text().then(text => {
+                        throw new Error(text || 'Помилка при оновленні статусу замовлення');
+                    });
                 }
+                return response.json();
+            })
+            .then(() => {
                 window.location.reload();
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('Помилка при оновленні статусу замовлення');
+                alert(error.message);
             });
     }
 
+    // Оновлюємо функцію відображення деталей, щоб показувати повідомлення про помилки
     function viewOrderDetails(orderId) {
         fetch(`/api/orders/${orderId}`)
             .then(response => {
                 if (!response.ok) {
-                    throw new Error('Network response was not ok');
+                    return response.text().then(text => {
+                        throw new Error(text || 'Помилка при завантаженні деталей замовлення');
+                    });
                 }
                 return response.json();
             })
             .then(order => {
-                // Оновлюємо доступ до полів відповідно до структури OrderResponse
                 document.getElementById('orderDetailId').textContent = order.id;
                 document.getElementById('clientName').textContent = order.clientName;
                 document.getElementById('clientEmail').textContent = order.clientEmail || 'Не вказано';
@@ -265,41 +289,41 @@
                     new Date(order.orderDate).toLocaleString('uk-UA');
                 document.getElementById('orderStatus').textContent = order.status;
                 document.getElementById('orderBranch').textContent = order.branchName;
+
+                // Виправляємо відображення терміновості
+                document.getElementById('orderUrgent').textContent =
+                    order.urgent ? 'Так' : 'Ні';  // замість isUrgent використовуємо urgent
+
                 document.getElementById('orderTotal').textContent = order.totalCost;
 
-                // Відображення позицій замовлення
                 const itemsContainer = document.getElementById('orderItems');
                 itemsContainer.innerHTML = '';
 
                 order.orderDetails.forEach(detail => {
                     const item = document.createElement('div');
                     item.className = 'order-details';
-
                     const itemName = detail.productName || detail.serviceName;
-
                     item.innerHTML = `
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <strong>${itemName}</strong>
-                            <div class="text-muted">
-                                Кількість: ${detail.quantity}
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>${itemName}</strong>
+                                <div class="text-muted">
+                                    Кількість: ${detail.quantity}
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <div>${detail.price}₴</div>
                             </div>
                         </div>
-                        <div class="text-end">
-                            <div>${detail.price}₴</div>
-                        </div>
-                    </div>
-                `;
-
+                    `;
                     itemsContainer.appendChild(item);
                 });
 
-                // Показуємо модальне вікно
-                window.orderDetailsModal.show();
+                orderDetailsModal.show();
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('Помилка при завантаженні деталей замовлення');
+                alert(error.message);
             });
     }
 

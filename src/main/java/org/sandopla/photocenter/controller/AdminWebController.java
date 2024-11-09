@@ -171,6 +171,7 @@ public class AdminWebController {
 
         return "admin/statistics";
     }
+
     @GetMapping("/orders")
     public String orderManagement(
             @RequestParam(required = false) String status,
@@ -184,32 +185,49 @@ public class AdminWebController {
 
         // Створюємо об'єкт фільтру
         OrderFilter filter = new OrderFilter();
-        filter.setStatus(status != null ? Order.OrderStatus.valueOf(status) : null);
+        if (status != null && !status.isEmpty()) {
+            try {
+                filter.setStatus(Order.OrderStatus.valueOf(status.toUpperCase()));
+            } catch (IllegalArgumentException e) {
+                // Ігноруємо невірний статус
+            }
+        }
         filter.setUrgent(urgent);
         filter.setSearch(search);
 
-        // Отримуємо замовлення з урахуванням ролі користувача
+        // Отримуємо замовлення з урахуванням ролі користувача та кіосків
         List<Order> orders;
         if (client.getRole() == Role.OWNER) {
             orders = orderService.findAllWithFilters(filter, pageable);
         } else {
-            orders = orderService.findByBranchWithFilters(client.getBranch(), filter, pageable);
+            // Для адміністратора філії отримуємо замовлення включно з кіосками
+            Branch adminBranch = client.getBranch();
+            orders = orderService.findByBranchWithFilters(adminBranch, filter, pageable);
         }
 
         // Додаємо статистику
+        long totalOrders = orders.size();
+        long newOrders = orders.stream()
+                .filter(o -> o.getStatus() == Order.OrderStatus.NEW).count();
+        long inProgressOrders = orders.stream()
+                .filter(o -> o.getStatus() == Order.OrderStatus.IN_PROGRESS).count();
+        long completedOrders = orders.stream()
+                .filter(o -> o.getStatus() == Order.OrderStatus.COMPLETED).count();
+
+        // Додаємо всі необхідні атрибути до моделі
         model.addAttribute("orders", orders);
-        model.addAttribute("totalOrders", orders.size());
-        model.addAttribute("newOrders",
-                orders.stream().filter(o -> o.getStatus() == Order.OrderStatus.NEW).count());
-        model.addAttribute("inProgressOrders",
-                orders.stream().filter(o -> o.getStatus() == Order.OrderStatus.IN_PROGRESS).count());
-        model.addAttribute("completedOrders",
-                orders.stream().filter(o -> o.getStatus() == Order.OrderStatus.COMPLETED).count());
+        model.addAttribute("totalOrders", totalOrders);
+        model.addAttribute("newOrders", newOrders);
+        model.addAttribute("inProgressOrders", inProgressOrders);
+        model.addAttribute("completedOrders", completedOrders);
 
         // Додаємо параметри фільтрації для відображення в UI
         model.addAttribute("currentStatus", status);
         model.addAttribute("currentUrgent", urgent);
         model.addAttribute("currentSearch", search);
+
+        // Додаємо всі можливі статуси для фільтра
+        model.addAttribute("orderStatuses", Order.OrderStatus.values());
 
         return "admin/orders-page";
     }

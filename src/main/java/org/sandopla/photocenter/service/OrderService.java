@@ -1,5 +1,7 @@
 package org.sandopla.photocenter.service;
 
+import jakarta.persistence.EntityNotFoundException;
+import jakarta.persistence.criteria.Subquery;
 import org.sandopla.photocenter.model.*;
 import org.sandopla.photocenter.repository.OrderRepository;
 import org.sandopla.photocenter.repository.specifications.OrderSpecifications;
@@ -85,9 +87,27 @@ public class OrderService {
         }
     }
 
+    @Transactional(readOnly = true)
     public Order getOrderById(Long id) {
-        return orderRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Order not found with id: " + id));
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Order not found with id: " + id));
+
+        // Примусово завантажуємо всі необхідні дані
+        order.getClient().getName(); // Завантажуємо дані клієнта
+        order.getBranch().getName(); // Завантажуємо дані філії
+        order.getProcessingBranch().getName(); // Завантажуємо дані філії обробки
+
+        // Завантажуємо деталі замовлення
+        order.getOrderDetails().forEach(detail -> {
+            if (detail.getProduct() != null) {
+                detail.getProduct().getName();
+            }
+            if (detail.getService() != null) {
+                detail.getService().getName();
+            }
+        });
+
+        return order;
     }
 
     public List<Order> getAllOrders() {
@@ -132,19 +152,6 @@ public class OrderService {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
-    public int getTodayOrdersCount(Branch branch) {
-        LocalDateTime startOfDay = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0);
-        LocalDateTime endOfDay = startOfDay.plusDays(1);
-        return orderRepository.countByBranchAndOrderDateBetween(branch, startOfDay, endOfDay);
-    }
-
-    public BigDecimal getBranchRevenue(Branch branch) {
-        List<Order> branchOrders = orderRepository.findByBranch(branch);
-        return branchOrders.stream()
-                .map(Order::getTotalCost)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-    }
-
     public List<Order> getLastOrders(int count) {
         return orderRepository.findTop10ByOrderByOrderDateDesc();
     }
@@ -177,8 +184,55 @@ public class OrderService {
                 branch, isUrgent, start, end);
     }
 
+    // Оновлюємо метод отримання замовлень для філії
     public List<Order> getBranchOrdersByDate(Branch branch, LocalDateTime start, LocalDateTime end) {
+        // Якщо це філія, отримуємо замовлення з неї та її кіосків
+        if (branch.getType() == Branch.BranchType.BRANCH ||
+                branch.getType() == Branch.BranchType.MAIN_OFFICE) {
+            return orderRepository.findByBranchAndKiosksAndDateBetween(branch, start, end);
+        }
+        // Якщо це кіоск, повертаємо тільки його замовлення
         return orderRepository.findByBranchAndOrderDateBetween(branch, start, end);
+    }
+
+    // Оновлюємо метод підрахунку замовлень
+    public int getTodayOrdersCount(Branch branch) {
+        LocalDateTime startOfDay = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0);
+        LocalDateTime endOfDay = startOfDay.plusDays(1);
+
+        if (branch.getType() == Branch.BranchType.BRANCH ||
+                branch.getType() == Branch.BranchType.MAIN_OFFICE) {
+            return orderRepository.countByBranchAndKiosksAndDateBetween(branch, startOfDay, endOfDay);
+        }
+        return orderRepository.countByBranchAndOrderDateBetween(branch, startOfDay, endOfDay);
+    }
+
+    // Оновлюємо метод отримання виручки
+    public BigDecimal getBranchRevenue(Branch branch) {
+        LocalDateTime monthStart = LocalDateTime.now().withDayOfMonth(1)
+                .withHour(0).withMinute(0).withSecond(0);
+        LocalDateTime now = LocalDateTime.now();
+
+        if (branch.getType() == Branch.BranchType.BRANCH ||
+                branch.getType() == Branch.BranchType.MAIN_OFFICE) {
+            BigDecimal revenue = orderRepository.sumTotalCostByBranchAndKiosksAndDateBetween(
+                    branch, monthStart, now);
+            return revenue != null ? revenue : BigDecimal.ZERO;
+        }
+        BigDecimal revenue = orderRepository.sumTotalCostByBranchAndOrderDateBetween(
+                branch, monthStart, now);
+        return revenue != null ? revenue : BigDecimal.ZERO;
+    }
+
+    // Оновлюємо метод отримання останніх замовлень
+    public List<Order> getLastOrdersForBranch(Branch branch, int count) {
+        if (branch.getType() == Branch.BranchType.BRANCH ||
+                branch.getType() == Branch.BranchType.MAIN_OFFICE) {
+            List<Order> orders = orderRepository.findByBranchAndKiosks(branch);
+            return orders.stream().limit(count).toList();
+        }
+        return orderRepository.findTopNByBranchOrderByOrderDateDesc(branch,
+                org.springframework.data.domain.PageRequest.of(0, count));
     }
 
     public List<Order> getRecentOrdersByClient(Client client, int limit) {
@@ -195,37 +249,68 @@ public class OrderService {
         );
     }
 
-    public List<Order> getLastOrdersForBranch(Branch branch, int count) {
-        return orderRepository.findTopNByBranchOrderByOrderDateDesc(
-                branch,
-                PageRequest.of(0, count)
-        );
-    }
-
     public List<Order> findAllWithFilters(OrderFilter filter, Pageable pageable) {
         Specification<Order> spec = buildSpecification(filter);
         return orderRepository.findAll(spec, pageable).getContent();
     }
 
     public List<Order> findByBranchWithFilters(Branch branch, OrderFilter filter, Pageable pageable) {
-        Specification<Order> spec = Specification.where(OrderSpecifications.belongsToBranch(branch));
-        spec = spec.and(buildSpecification(filter));
-        return orderRepository.findAll(spec, pageable).getContent();
+        // Створюємо базову специфікацію для філії та її кіосків
+        Specification<Order> branchSpec = null;
+
+        if (branch.getType() == Branch.BranchType.BRANCH ||
+                branch.getType() == Branch.BranchType.MAIN_OFFICE) {
+            // Для філії: замовлення філії ТА всіх її кіосків
+            branchSpec = (root, query, cb) -> {
+                query.distinct(true); // Забезпечуємо унікальність результатів
+
+                // Створюємо підзапит для отримання ID кіосків
+                Subquery<Long> kioskSubquery = query.subquery(Long.class);
+                var kioskRoot = kioskSubquery.from(Branch.class);
+                kioskSubquery.select(kioskRoot.get("id"))
+                        .where(cb.equal(kioskRoot.get("parentBranch"), branch));
+
+                // Повертаємо умову: замовлення з філії АБО з кіосків
+                return cb.or(
+                        cb.equal(root.get("branch"), branch),
+                        root.get("branch").get("id").in(kioskSubquery)
+                );
+            };
+        } else {
+            // Для кіоска: тільки його замовлення
+            branchSpec = (root, query, cb) -> cb.equal(root.get("branch"), branch);
+        }
+
+        // Додаємо інші фільтри
+        Specification<Order> filterSpec = buildSpecification(filter);
+
+        // Комбінуємо специфікації
+        Specification<Order> finalSpec = branchSpec.and(filterSpec);
+
+        return orderRepository.findAll(finalSpec, pageable).getContent();
     }
 
     private Specification<Order> buildSpecification(OrderFilter filter) {
         Specification<Order> spec = Specification.where(null);
 
         if (filter.getStatus() != null) {
-            spec = spec.and(OrderSpecifications.hasStatus(filter.getStatus()));
+            spec = spec.and((root, query, cb) ->
+                    cb.equal(root.get("status"), filter.getStatus()));
         }
 
         if (filter.getUrgent() != null) {
-            spec = spec.and(OrderSpecifications.isUrgent(filter.getUrgent()));
+            spec = spec.and((root, query, cb) ->
+                    cb.equal(root.get("isUrgent"), filter.getUrgent()));
         }
 
-        if (filter.getSearch() != null && !filter.getSearch().isEmpty()) {
-            spec = spec.and(OrderSpecifications.matchesSearch(filter.getSearch()));
+        if (filter.getSearch() != null && !filter.getSearch().trim().isEmpty()) {
+            String searchPattern = "%" + filter.getSearch().toLowerCase() + "%";
+            spec = spec.and((root, query, cb) ->
+                    cb.or(
+                            cb.like(cb.lower(root.get("id").as(String.class)), searchPattern),
+                            cb.like(cb.lower(root.get("client").get("name")), searchPattern),
+                            cb.like(cb.lower(root.get("branch").get("name")), searchPattern)
+                    ));
         }
 
         return spec;

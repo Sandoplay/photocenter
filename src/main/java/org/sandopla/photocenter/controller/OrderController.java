@@ -71,19 +71,31 @@ public class OrderController {
             Order order = orderService.getOrderById(id);
 
             // Перевіряємо права доступу
-            if (client.getRole() == Role.OWNER ||
-                    (client.getRole() == Role.ADMIN &&
-                            order.getBranch().getId().equals(client.getBranch().getId()))) {
+            boolean hasAccess = false;
 
-                // !!! Змінено: конвертуємо Order в OrderResponse
-                OrderResponse orderResponse = OrderResponse.fromOrder(order);
-                return ResponseEntity.ok(orderResponse);  // Повертаємо OrderResponse замість Order
-
+            if (client.getRole() == Role.OWNER) {
+                hasAccess = true;
+            } else if (client.getRole() == Role.ADMIN) {
+                // Адміністратор має доступ до замовлень своєї філії та її кіосків
+                Branch adminBranch = client.getBranch();
+                hasAccess = order.getBranch().equals(adminBranch) ||
+                        (order.getBranch().getParentBranch() != null &&
+                                order.getBranch().getParentBranch().equals(adminBranch));
             } else {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+                // Звичайний користувач має доступ тільки до своїх замовлень
+                hasAccess = order.getClient().getId().equals(client.getId());
             }
+
+            if (!hasAccess) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body("You don't have permission to view this order");
+            }
+
+            OrderResponse orderResponse = OrderResponse.fromOrder(order);
+            return ResponseEntity.ok(orderResponse);
         } catch (Exception e) {
-            return ResponseEntity.notFound().build();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error retrieving order: " + e.getMessage());
         }
     }
 
@@ -141,21 +153,66 @@ public class OrderController {
             Client client = (Client) authentication.getPrincipal();
             Order order = orderService.getOrderById(id);
 
-            // Перевірка прав доступу
-            if (client.getRole() != Role.OWNER &&
-                    !order.getBranch().getId().equals(client.getBranch().getId())) {
+            // Перевіряємо права доступу
+            boolean hasAccess = false;
+
+            if (client.getRole() == Role.OWNER) {
+                hasAccess = true;
+            } else if (client.getRole() == Role.ADMIN) {
+                Branch adminBranch = client.getBranch();
+                // Адміністратор має доступ до замовлень своєї філії та її кіосків
+                if (order.getBranch().equals(adminBranch)) {
+                    hasAccess = true;
+                } else if (order.getBranch().getParentBranch() != null) {
+                    hasAccess = order.getBranch().getParentBranch().equals(adminBranch);
+                }
+
+                // Додатково перевіряємо processingBranch
+                if (order.getProcessingBranch().equals(adminBranch)) {
+                    hasAccess = true;
+                }
+            }
+
+            if (!hasAccess) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                         .body("You don't have permission to update this order");
             }
 
-            Order updatedOrder = orderService.updateOrderStatus(id, statusUpdate.getStatus());
+            // Додаткова перевірка коректності зміни статусу
+            if (!isStatusTransitionAllowed(order.getStatus(), statusUpdate.getStatus())) {
+                return ResponseEntity.badRequest()
+                        .body("Invalid status transition from " + order.getStatus() +
+                                " to " + statusUpdate.getStatus());
+            }
 
-            // Конвертуємо Order в OrderResponse перед поверненням
-            OrderResponse response = OrderResponse.fromOrder(updatedOrder);
-            return ResponseEntity.ok(response);
+            Order updatedOrder = orderService.updateOrderStatus(id, statusUpdate.getStatus());
+            return ResponseEntity.ok(OrderResponse.fromOrder(updatedOrder));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error updating order status: " + e.getMessage());
+        }
+    }
+
+    // Допоміжний метод для перевірки коректності зміни статусу
+    private boolean isStatusTransitionAllowed(Order.OrderStatus currentStatus,
+                                              Order.OrderStatus newStatus) {
+        if (currentStatus == null || newStatus == null) {
+            return false;
+        }
+
+        switch (currentStatus) {
+            case NEW:
+                return newStatus == Order.OrderStatus.IN_PROGRESS ||
+                        newStatus == Order.OrderStatus.CANCELLED;
+            case IN_PROGRESS:
+                return newStatus == Order.OrderStatus.COMPLETED ||
+                        newStatus == Order.OrderStatus.CANCELLED;
+            case COMPLETED:
+                return false; // Завершене замовлення не можна змінювати
+            case CANCELLED:
+                return false; // Скасоване замовлення не можна змінювати
+            default:
+                return false;
         }
     }
 

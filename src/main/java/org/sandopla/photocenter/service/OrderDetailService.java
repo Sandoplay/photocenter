@@ -11,6 +11,8 @@ import java.util.List;
 @Service
 public class OrderDetailService {
 
+    private static final BigDecimal URGENT_PRICE_MULTIPLIER = new BigDecimal("1.10"); // +10%
+
     private final OrderDetailRepository orderDetailRepository;
 
     @Autowired
@@ -19,11 +21,12 @@ public class OrderDetailService {
     }
 
     public OrderDetail createOrderDetail(OrderDetail orderDetail) {
-        // Перевіряємо і встановлюємо price
+        // Перевіряємо і встановлюємо базову ціну
         if (orderDetail.getPrice() == null) {
             if (orderDetail.getProduct() != null) {
                 orderDetail.setPrice(orderDetail.getProduct().getPrice());
             } else if (orderDetail.getService() != null) {
+                // Для послуг використовуємо множник термінового замовлення з моделі Service
                 BigDecimal servicePrice = orderDetail.getService().getBasePrice();
                 if (orderDetail.getOrder().isUrgent()) {
                     servicePrice = servicePrice.multiply(orderDetail.getService().getUrgentPriceMultiplier());
@@ -38,12 +41,19 @@ public class OrderDetailService {
             throw new IllegalArgumentException("Quantity must be positive");
         }
 
-        // Розраховуємо total_price
-        orderDetail.setPrice(
-                orderDetail.getPrice().multiply(
-                        BigDecimal.valueOf(orderDetail.getQuantity())
-                )
-        );
+        // Розраховуємо фінальну ціну
+        BigDecimal finalPrice = orderDetail.getPrice()
+                .multiply(BigDecimal.valueOf(orderDetail.getQuantity()));
+
+        // Якщо замовлення термінове і це товар (не послуга), додаємо 10%
+        if (orderDetail.getOrder().isUrgent() && orderDetail.getProduct() != null) {
+            finalPrice = finalPrice.multiply(URGENT_PRICE_MULTIPLIER);
+        }
+
+        // Округляємо до 2 знаків після коми
+        finalPrice = finalPrice.setScale(2, BigDecimal.ROUND_HALF_UP);
+
+        orderDetail.setPrice(finalPrice);
 
         return orderDetailRepository.save(orderDetail);
     }

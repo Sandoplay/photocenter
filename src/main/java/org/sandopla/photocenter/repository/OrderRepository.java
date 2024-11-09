@@ -34,4 +34,42 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
 
     @Query("SELECT SUM(o.totalCost) FROM Order o WHERE o.branch = :branch AND o.isUrgent = :isUrgent AND o.orderDate BETWEEN :start AND :end")
     BigDecimal sumTotalCostByBranchAndIsUrgentAndOrderDateBetween(Branch branch, boolean isUrgent, LocalDateTime start, LocalDateTime end);
+
+    // Додаємо новий метод для отримання замовлень з кіосків
+    @Query("SELECT o FROM Order o WHERE o.branch IN " +
+            "(SELECT b FROM Branch b WHERE b.parentBranch = :branch) " +
+            "OR o.branch = :branch " +
+            "ORDER BY o.orderDate DESC")
+    List<Order> findByBranchAndKiosks(@Param("branch") Branch branch);
+
+    // Метод для отримання замовлень з кіосків з фільтрацією за датою
+    @Query("SELECT o FROM Order o WHERE (o.branch IN " +
+            "(SELECT b FROM Branch b WHERE b.parentBranch = :branch) " +
+            "OR o.branch = :branch) " +
+            "AND o.orderDate BETWEEN :start AND :end " +
+            "ORDER BY o.orderDate DESC")
+    List<Order> findByBranchAndKiosksAndDateBetween(
+            @Param("branch") Branch branch,
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end);
+
+    // Метод для підрахунку кількості замовлень для філії та її кіосків
+    @Query("SELECT COUNT(o) FROM Order o WHERE (o.branch IN " +
+            "(SELECT b FROM Branch b WHERE b.parentBranch = :branch) " +
+            "OR o.branch = :branch) " +
+            "AND o.orderDate BETWEEN :start AND :end")
+    int countByBranchAndKiosksAndDateBetween(
+            @Param("branch") Branch branch,
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end);
+
+    // Метод для отримання виручки філії разом з кіосками
+    @Query("SELECT SUM(o.totalCost) FROM Order o WHERE (o.branch IN " +
+            "(SELECT b FROM Branch b WHERE b.parentBranch = :branch) " +
+            "OR o.branch = :branch) " +
+            "AND o.orderDate BETWEEN :start AND :end")
+    BigDecimal sumTotalCostByBranchAndKiosksAndDateBetween(
+            @Param("branch") Branch branch,
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end);
 }
