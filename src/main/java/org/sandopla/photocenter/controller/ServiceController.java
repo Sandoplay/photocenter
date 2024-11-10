@@ -1,7 +1,7 @@
 package org.sandopla.photocenter.controller;
 
 import org.sandopla.photocenter.model.Service;
-import org.sandopla.photocenter.service.ServiceService;
+import org.sandopla.photocenter.service.PhotoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -12,39 +12,39 @@ import java.util.List;
 @RequestMapping("/api/services")
 public class ServiceController {
 
-    private final ServiceService serviceService;
+    private final PhotoService photoService;
 
     @Autowired
-    public ServiceController(ServiceService serviceService) {
-        this.serviceService = serviceService;
+    public ServiceController(PhotoService photoService) {
+        this.photoService = photoService;
     }
 
     @GetMapping
     public List<Service> getAllServices() {
-        return serviceService.getAllServices();
+        return photoService.getAllServices();
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<Service> getServiceById(@PathVariable Long id) {
-        Service service = serviceService.getServiceById(id);
+        Service service = photoService.getServiceById(id);
         return ResponseEntity.ok(service);
     }
 
     @PostMapping
     public ResponseEntity<Service> createService(@RequestBody Service service) {
-        Service newService = serviceService.createService(service);
+        Service newService = photoService.createService(service);
         return ResponseEntity.ok(newService);
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<Service> updateService(@PathVariable Long id, @RequestBody Service serviceDetails) {
-        Service updatedService = serviceService.updateService(id, serviceDetails);
+        Service updatedService = photoService.updateService(id, serviceDetails);
         return ResponseEntity.ok(updatedService);
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteService(@PathVariable Long id) {
-        serviceService.deleteService(id);
+        photoService.deleteService(id);
         return ResponseEntity.ok().build();
     }
 }

@@ -33,47 +33,31 @@ public class OrderService {
 
     @Transactional
     public Order createOrder(Order order, List<OrderDetail> orderDetails) {
-        order.setTotalCost(BigDecimal.ZERO);
+        // Зберігаємо замовлення
         order.setOrderDetails(new ArrayList<>());
+        order.setTotalCost(BigDecimal.ZERO);
         Order savedOrder = orderRepository.save(order);
-
 
         BigDecimal totalCost = BigDecimal.ZERO;
 
-        Branch orderBranch = order.getBranch();
-
-//        // Якщо замовлення створюється в кіоску
-//        if (orderBranch.getType() == Branch.BranchType.KIOSK) {
-//            // Встановлюємо філію, яка буде виконувати замовлення
-//            order.setProcessingBranch(orderBranch.getParentBranch());
-//        } else {
-//            // Якщо не кіоск - та ж філія виконує
-//            order.setProcessingBranch(orderBranch);
-//        }
-
+        // Обробляємо кожну деталь замовлення
         for (OrderDetail detail : orderDetails) {
             try {
+                // Прив'язуємо деталь до замовлення
                 detail.setOrder(savedOrder);
 
-                // Перевіряємо і конвертуємо значення
-                if (detail.getPrice() == null) {
-                    throw new IllegalArgumentException("Price is required");
-                }
-
-                // Явно конвертуємо в BigDecimal
-                detail.setPrice(new BigDecimal(detail.getPrice().toString()));
-
+                // Створюємо і зберігаємо деталь
                 OrderDetail savedDetail = orderDetailService.createOrderDetail(detail);
                 savedOrder.getOrderDetails().add(savedDetail);
 
-                if (savedDetail.getPrice() != null) {
-                    totalCost = totalCost.add(savedDetail.getPrice());
-                }
+                // Додаємо до загальної суми
+                totalCost = totalCost.add(savedDetail.getPrice());
             } catch (Exception e) {
                 throw new RuntimeException("Error processing order detail: " + e.getMessage());
             }
         }
 
+        // Оновлюємо загальну суму замовлення
         savedOrder.setTotalCost(totalCost);
         return orderRepository.save(savedOrder);
     }

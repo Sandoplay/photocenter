@@ -5,7 +5,7 @@ import org.sandopla.photocenter.model.Product;
 import org.sandopla.photocenter.model.Service;
 import org.sandopla.photocenter.service.BranchService;
 import org.sandopla.photocenter.service.ProductService;
-import org.sandopla.photocenter.service.ServiceService;
+import org.sandopla.photocenter.service.PhotoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -19,15 +19,15 @@ public class DropdownController {
 
     private final BranchService branchService;
     private final ProductService productService;
-    private final ServiceService serviceService;
+    private final PhotoService photoService;
 
     @Autowired
     public DropdownController(BranchService branchService,
                               ProductService productService,
-                              ServiceService serviceService) {
+                              PhotoService photoService) {
         this.branchService = branchService;
         this.productService = productService;
-        this.serviceService = serviceService;
+        this.photoService = photoService;
     }
 
     @GetMapping("/branches")
@@ -42,6 +42,6 @@ public class DropdownController {
 
     @GetMapping("/services")
     public List<Service> getServices() {
-        return serviceService.getAllServices();
+        return photoService.getAllServices();
     }
 }
