@@ -52,4 +52,7 @@ class DeliveryItem {
 
     @Column(nullable = false)
     private Integer quantity;
+
+    @Column(nullable = false)
+    private double supplierPrice;
 }

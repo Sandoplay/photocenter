@@ -41,6 +41,8 @@ public class SecurityConfig {
                                 "/webjars/**", "/favicon.ico", "/static/**").permitAll()
                         .requestMatchers("/", "/home", "/auth/login",
                                 "/auth/signup", "/auth/api/**").permitAll()
+                        .requestMatchers("/admin/suppliers", "/admin/suppliers/**").hasRole("OWNER")
+                        .requestMatchers("/api/suppliers/**").hasRole("OWNER")
                         .requestMatchers("/admin/**").hasAnyRole("OWNER", "ADMIN")
                         .requestMatchers("/create-order").authenticated()  // Додано цей рядок
                         .anyRequest().authenticated()

@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="${supplier.id} ? 'Редагування постачальника' : 'Новий постачальник'">Постачальник</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
+        <a class="navbar-brand" href="/">Фотоцентр</a>
+        <div class="collapse navbar-collapse">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="/home">Головна</a>
+                </li>
+            </ul>
+            <div class="d-flex align-items-center">
+                <span class="text-light me-3" sec:authentication="name"></span>
+                <form th:action="@{/auth/logout}" method="post" class="d-inline">
+                    <button type="submit" class="btn btn-outline-light btn-sm">Вийти</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="container-fluid">
+    <div class="row">
+        <!-- Сайдбар -->
+        <nav class="col-md-2 d-none d-md-block bg-dark sidebar min-vh-100">
+            <div class="position-sticky">
+                <div class="p-3 text-white">
+                    <h5>Адмін панель</h5>
+                    <p class="small" th:text="${#authentication.principal.name}">Username</p>
+                </div>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="/admin">
+                            <i class="fas fa-home me-2"></i>
+                            Головна
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="/admin/suppliers">
+                            <i class="fas fa-truck me-2"></i>
+                            Постачальники
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="/admin/orders">
+                            <i class="fas fa-shopping-cart me-2"></i>
+                            Замовлення
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="/admin/products">
+                            <i class="fas fa-box me-2"></i>
+                            Товари
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="/admin/services">
+                            <i class="fas fa-camera me-2"></i>
+                            Послуги
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+
+        <!-- Основний контент -->
+        <!-- templates/admin/suppliers/form.html -->
+        <!-- ... початок файлу такий самий ... -->
+
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+            <div class="row">
+                <div class="col-md-8 offset-md-2">
+                    <!-- Виправляємо синтаксис форми -->
+                    <form th:action="@{${supplier.id == null ? '/admin/suppliers' : '/admin/suppliers/' + supplier.id}}"
+                          th:object="${supplier}"
+                          method="post"
+                          class="needs-validation"
+                          novalidate>
+
+                        <!-- Базова інформація -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5 class="mb-0">Основна інформація</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label for="name" class="form-label">Назва*</label>
+                                    <input type="text" class="form-control" id="name"
+                                           th:field="*{name}" required>
+                                    <div class="invalid-feedback">
+                                        Будь ласка, введіть назву постачальника
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="contactPerson" class="form-label">Контактна особа</label>
+                                    <input type="text" class="form-control" id="contactPerson"
+                                           th:field="*{contactPerson}">
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="phoneNumber" class="form-label">Телефон*</label>
+                                    <input type="tel" class="form-control" id="phoneNumber"
+                                           th:field="*{phoneNumber}" required>
+                                    <div class="invalid-feedback">
+                                        Будь ласка, введіть номер телефону
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="email" class="form-label">Email</label>
+                                    <input type="email" class="form-control" id="email"
+                                           th:field="*{email}">
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="address" class="form-label">Адреса</label>
+                                    <textarea class="form-control" id="address"
+                                              th:field="*{address}" rows="2"></textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Спеціалізації -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5 class="mb-0">Спеціалізації</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6" th:each="category : ${categories}">
+                                        <div class="form-check mb-2">
+                                            <input class="form-check-input" type="checkbox"
+                                                   th:field="*{specializations}"
+                                                   th:value="${category}"
+                                                   th:id="${'category-' + category}">
+                                            <label class="form-check-label"
+                                                   th:for="${'category-' + category}"
+                                                   th:text="${category.displayName}">
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Додаткова інформація -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5 class="mb-0">Додаткова інформація</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label for="rating" class="form-label">Рейтинг</label>
+                                    <select class="form-select" id="rating" th:field="*{rating}">
+                                        <option value="">Не встановлено</option>
+                                        <option value="1">1 - Дуже погано</option>
+                                        <option value="2">2 - Погано</option>
+                                        <option value="3">3 - Нормально</option>
+                                        <option value="4">4 - Добре</option>
+                                        <option value="5">5 - Відмінно</option>
+                                    </select>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="notes" class="form-label">Примітки</label>
+                                    <textarea class="form-control" id="notes"
+                                              th:field="*{notes}" rows="3"></textarea>
+                                </div>
+
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="checkbox"
+                                           id="active" th:field="*{active}">
+                                    <label class="form-check-label" for="active">
+                                        Активний постачальник
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Кнопки -->
+                        <div class="d-flex justify-content-between">
+                            <a th:href="@{/admin/suppliers}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-1"></i>
+                                Назад
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i>
+                                Зберегти
+                            </button>
+                        </div>
+
+                    </form>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+<script>
+    // Валідація форми
+    (function () {
+        'use strict'
+
+        var forms = document.querySelectorAll('.needs-validation')
+
+        Array.prototype.slice.call(forms)
+            .forEach(function (form) {
+                form.addEventListener('submit', function (event) {
+                    if (!form.checkValidity()) {
+                        event.preventDefault()
+                        event.stopPropagation()
+                    }
+
+                    form.classList.add('was-validated')
+                }, false)
+            })
+    })()
+</script>
+
+</body>
+</html>
