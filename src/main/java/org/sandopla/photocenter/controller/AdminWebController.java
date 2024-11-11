@@ -3,6 +3,8 @@ package org.sandopla.photocenter.controller;
 import org.sandopla.photocenter.model.*;
 import org.sandopla.photocenter.service.BranchService;
 import org.sandopla.photocenter.service.OrderService;
+import org.sandopla.photocenter.service.PhotoServiceManager;
+import org.sandopla.photocenter.service.ProductService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -20,11 +22,15 @@ import java.util.List;
 public class AdminWebController {
     private final BranchService branchService;
     private final OrderService orderService;
+    private final ProductService productService;
+    private final PhotoServiceManager photoServiceManager;
 
     @Autowired
-    public AdminWebController(BranchService branchService, OrderService orderService) {
+    public AdminWebController(BranchService branchService, OrderService orderService, ProductService productService, PhotoServiceManager photoServiceManager) {
         this.branchService = branchService;
         this.orderService = orderService;
+        this.productService = productService;
+        this.photoServiceManager = photoServiceManager;
     }
 
     @GetMapping
@@ -96,11 +102,13 @@ public class AdminWebController {
 
     @GetMapping("/products")
     public String productManagement(Model model) {
+        model.addAttribute("products", productService.getAllProducts());
         return "admin/products";
     }
 
     @GetMapping("/services")
     public String serviceManagement(Model model) {
+        model.addAttribute("services", photoServiceManager.getAllServices());
         return "admin/services";
     }
 
