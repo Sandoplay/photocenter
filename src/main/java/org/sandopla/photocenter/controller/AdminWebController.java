@@ -1,10 +1,7 @@
 package org.sandopla.photocenter.controller;
 
 import org.sandopla.photocenter.model.*;
-import org.sandopla.photocenter.service.BranchService;
-import org.sandopla.photocenter.service.OrderService;
-import org.sandopla.photocenter.service.PhotoServiceManager;
-import org.sandopla.photocenter.service.ProductService;
+import org.sandopla.photocenter.service.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -24,13 +21,16 @@ public class AdminWebController {
     private final OrderService orderService;
     private final ProductService productService;
     private final PhotoServiceManager photoServiceManager;
+    private final ClientService clientService;
 
     @Autowired
-    public AdminWebController(BranchService branchService, OrderService orderService, ProductService productService, PhotoServiceManager photoServiceManager) {
+    public AdminWebController(BranchService branchService, OrderService orderService, ProductService productService,
+                              PhotoServiceManager photoServiceManager, ClientService clientService) {
         this.branchService = branchService;
         this.orderService = orderService;
         this.productService = productService;
         this.photoServiceManager = photoServiceManager;
+        this.clientService = clientService;
     }
 
     @GetMapping
@@ -82,23 +82,13 @@ public class AdminWebController {
         return "admin/branches";
     }
 
-//    @GetMapping("/orders")
-//    public String orderManagement(Model model, Authentication authentication) {
-//        Client client = (Client) authentication.getPrincipal();
-//
-//        if (client.getRole() == Role.OWNER) {
-//            model.addAttribute("orders", orderService.getAllOrders());
-//        } else {
-//            Branch adminBranch = client.getBranch();
-//            model.addAttribute("orders", orderService.getBranchOrdersByDate(
-//                    adminBranch,
-//                    java.time.LocalDateTime.now().minusDays(30),
-//                    java.time.LocalDateTime.now()
-//            ));
-//        }
-//
-//        return "admin/orders";
-//    }
+    @GetMapping("/admins")
+    @PreAuthorize("hasRole('OWNER')")
+    public String adminManagement(Model model) {
+        model.addAttribute("branches", branchService.getAllBranches());
+        model.addAttribute("admins", clientService.getAllAdmins());  // Додаємо цей рядок
+        return "admin/admins";
+    }
 
     @GetMapping("/products")
     public String productManagement(Model model) {

@@ -43,6 +43,18 @@ public class ClientService implements UserDetailsService {
         return clientRepository.findAll();
     }
 
+    public List<Client> getAllAdmins() {
+        return clientRepository.findByRole(Role.ADMIN);
+    }
+
+    @Transactional
+    public Client updateAdmin(Client admin) {
+        if (admin.getRole() != Role.ADMIN) {
+            throw new RuntimeException("Can only update administrators");
+        }
+        return clientRepository.save(admin);
+    }
+
     public Client getClientById(Long id) {
         return clientRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Client not found with id: " + id));

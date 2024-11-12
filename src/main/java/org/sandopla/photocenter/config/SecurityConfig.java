@@ -43,6 +43,7 @@ public class SecurityConfig {
                                 "/auth/signup", "/auth/api/**").permitAll()
                         .requestMatchers("/admin/suppliers", "/admin/suppliers/**").hasRole("OWNER")
                         .requestMatchers("/api/suppliers/**").hasRole("OWNER")
+                        .requestMatchers("admin/branches/**").hasRole("OWNER")
                         .requestMatchers("/admin/**").hasAnyRole("OWNER", "ADMIN")
                         .requestMatchers("/create-order").authenticated()  // Додано цей рядок
                         .anyRequest().authenticated()

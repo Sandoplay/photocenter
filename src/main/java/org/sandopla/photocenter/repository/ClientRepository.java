@@ -13,6 +13,7 @@ import java.util.Optional;
 
 @Repository
 public interface ClientRepository extends JpaRepository<Client, Long> {
+    List<Client> findByRole(Role role);
     Optional<Client> findByEmail(String email);
 
     @Query("SELECT c FROM Client c LEFT JOIN FETCH c.branch WHERE c.username = :username")

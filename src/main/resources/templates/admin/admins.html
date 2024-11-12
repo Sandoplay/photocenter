@@ -1,0 +1,266 @@
+<!-- admin/admins.html -->
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>Управління адміністраторами - Фотоцентр</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
+        <a class="navbar-brand" href="/">Фотоцентр</a>
+        <div class="collapse navbar-collapse">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="/home">Головна</a>
+                </li>
+            </ul>
+            <div class="d-flex align-items-center">
+                <span class="text-light me-3" sec:authentication="name"></span>
+                <form th:action="@{/auth/logout}" method="post" class="d-inline">
+                    <button type="submit" class="btn btn-outline-light btn-sm">Вийти</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</nav>
+
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="row">
+            <!-- Сайдбар -->
+            <nav class="col-md-2 d-none d-md-block bg-dark sidebar min-vh-100">
+                <div class="position-sticky">
+                    <div class="p-3 text-white">
+                        <h5>Адмін панель</h5>
+                        <p class="small" th:text="${#authentication.principal.name}">Username</p>
+                    </div>
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link text-white" href="/admin">
+                                <i class="fas fa-home me-2"></i>
+                                Головна
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active text-white" href="/admin/branches">
+                                <i class="fas fa-store me-2"></i>
+                                Філії
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-white" href="/admin/admins">
+                                <i class="fas fa-users-cog me-2"></i>
+                                Адміністратори
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-white" href="/admin/products">
+                                <i class="fas fa-box me-2"></i>
+                                Товари
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-white" href="/admin/services">
+                                <i class="fas fa-camera me-2"></i>
+                                Послуги
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+        <!-- Основний контент -->
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1>Управління адміністраторами</h1>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#adminModal">
+                    <i class="fas fa-plus me-1"></i> Додати адміністратора
+                </button>
+            </div>
+
+            <!-- Таблиця адміністраторів -->
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Ім'я</th>
+                        <th>Email</th>
+                        <th>Телефон</th>
+                        <th>Філія</th>
+                        <th>Дії</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="admin : ${admins}">
+                        <td th:text="${admin.id}"></td>
+                        <td th:text="${admin.name}"></td>
+                        <td th:text="${admin.email}"></td>
+                        <td th:text="${admin.phoneNumber}"></td>
+                        <td th:text="${admin.branch.name}"></td>
+                        <td>
+                            <div class="btn-group">
+                                <button class="btn btn-sm btn-outline-primary"
+                                        onclick="editAdmin(this)"
+                                        th:data-id="${admin.id}"
+                                        th:data-name="${admin.name}"
+                                        th:data-email="${admin.email}"
+                                        th:data-phone="${admin.phoneNumber}"
+                                        th:data-username="${admin.username}"
+                                        th:data-branch-id="${admin.branch.id}">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger"
+                                        onclick="removeAdmin(this)"
+                                        th:data-id="${admin.id}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+</div>
+
+<!-- Модальне вікно додавання адміністратора -->
+<div class="modal fade" id="adminModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Новий адміністратор</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="adminForm">
+                    <div class="mb-3">
+                        <label for="adminName" class="form-label">Ім'я</label>
+                        <input type="text" class="form-control" id="adminName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="adminEmail" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="adminEmail" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="adminPhone" class="form-label">Телефон</label>
+                        <input type="tel" class="form-control" id="adminPhone" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="adminUsername" class="form-label">Логін</label>
+                        <input type="text" class="form-control" id="adminUsername" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="adminPassword" class="form-label">Пароль</label>
+                        <input type="password" class="form-control" id="adminPassword" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="adminBranch" class="form-label">Філія</label>
+                        <select class="form-select" id="adminBranch" required>
+                            <option value="">Оберіть філію</option>
+                            <option th:each="branch : ${branches}"
+                                    th:value="${branch.id}"
+                                    th:text="${branch.name}">
+                            </option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Скасувати</button>
+                <button type="button" class="btn btn-primary" onclick="saveAdmin()">Зберегти</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+<script>
+    const adminModal = new bootstrap.Modal(document.getElementById('adminModal'));
+    let editMode = false;
+    let editId = null;
+
+    function clearForm() {
+        editMode = false;
+        editId = null;
+        document.getElementById('adminForm').reset();
+    }
+
+    function editAdmin(button) {
+        const data = button.dataset;
+        editMode = true;
+        editId = data.id;
+
+        document.getElementById('adminName').value = data.name;
+        document.getElementById('adminEmail').value = data.email;
+        document.getElementById('adminPhone').value = data.phone;
+        document.getElementById('adminUsername').value = data.username;
+        document.getElementById('adminBranch').value = data.branchId;
+
+        // Приховуємо поле пароля при редагуванні
+        document.getElementById('adminPassword').parentElement.style.display = 'none';
+
+        // Змінюємо заголовок модального вікна
+        document.querySelector('#adminModal .modal-title').textContent = 'Редагування адміністратора';
+
+        adminModal.show();
+    }
+
+    function showAddModal() {
+        clearForm();
+        document.getElementById('adminPassword').parentElement.style.display = 'block';
+        document.querySelector('#adminModal .modal-title').textContent = 'Новий адміністратор';
+        adminModal.show();
+    }
+
+    function saveAdmin() {
+        const data = {
+            name: document.getElementById('adminName').value,
+            email: document.getElementById('adminEmail').value,
+            phoneNumber: document.getElementById('adminPhone').value,
+            username: document.getElementById('adminUsername').value,
+            branch: {
+                id: document.getElementById('adminBranch').value
+            }
+        };
+
+        // Додаємо пароль тільки при створенні нового адміна
+        if (!editMode) {
+            data.password = document.getElementById('adminPassword').value;
+        }
+
+        const method = editMode ? 'PUT' : 'POST';
+        const url = editMode ? `/api/admins/${editId}` : '/api/admins';
+
+        fetch(url, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        })
+            .then(response => {
+                if (!response.ok) throw new Error('Network response was not ok');
+                return response.json();
+            })
+            .then(() => {
+                adminModal.hide();
+                window.location.reload();
+            })
+            .catch(error => {
+                alert('Error saving admin: ' + error.message);
+            });
+    }
+
+    // Обробник для кнопки додавання
+    document.querySelector('[data-bs-target="#adminModal"]')
+        .addEventListener('click', showAddModal);
+</script>
+
+</body>
+</html>

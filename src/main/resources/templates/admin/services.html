@@ -1,9 +1,9 @@
-<!-- admin/products.html -->
+<!-- admin/services.html -->
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
     <meta charset="UTF-8">
-    <title>Управління товарами - Фотоцентр</title>
+    <title>Управління послугами - Фотоцентр</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
@@ -74,47 +74,44 @@
         <!-- Основний контент -->
         <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-                <h1>Управління товарами</h1>
-                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addProductModal">
-                    <i class="fas fa-plus me-1"></i> Додати товар
+                <h1>Управління послугами</h1>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#serviceModal">
+                    <i class="fas fa-plus me-1"></i> Додати послугу
                 </button>
             </div>
 
-            <!-- Таблиця товарів -->
+            <!-- Таблиця послуг -->
             <div class="table-responsive">
                 <table class="table table-striped">
                     <thead>
                     <tr>
                         <th>ID</th>
                         <th>Назва</th>
-                        <th>Категорія</th>
-                        <th>Ціна</th>
-                        <th>Кількість</th>
+                        <th>Базова ціна</th>
+                        <th>Множник терміновості</th>
                         <th>Дії</th>
                     </tr>
                     </thead>
                     <tbody>
-                    <tr th:each="product : ${products}">
-                        <td th:text="${product.id}"></td>
-                        <td th:text="${product.name}"></td>
-                        <td th:text="${product.category}"></td>
-                        <td th:text="${product.price + '₴'}"></td>
-                        <td th:text="${product.stockQuantity}"></td>
+                    <tr th:each="service : ${services}">
+                        <td th:text="${service.id}"></td>
+                        <td th:text="${service.name}"></td>
+                        <td th:text="${service.basePrice + '₴'}"></td>
+                        <td th:text="${service.urgentPriceMultiplier + 'x'}"></td>
                         <td>
                             <div class="btn-group">
                                 <button class="btn btn-sm btn-outline-primary"
-                                        onclick="editProduct(this)"
-                                        th:data-id="${product.id}"
-                                        th:data-name="${product.name}"
-                                        th:data-category="${product.category}"
-                                        th:data-price="${product.price}"
-                                        th:data-quantity="${product.stockQuantity}"
-                                        th:data-description="${product.description}">
+                                        onclick="editService(this)"
+                                        th:data-id="${service.id}"
+                                        th:data-name="${service.name}"
+                                        th:data-base-price="${service.basePrice}"
+                                        th:data-urgent-multiplier="${service.urgentPriceMultiplier}"
+                                        th:data-description="${service.description}">
                                     <i class="fas fa-edit"></i>
                                 </button>
                                 <button class="btn btn-sm btn-outline-danger"
-                                        onclick="deleteProduct(this)"
-                                        th:data-id="${product.id}">
+                                        onclick="deleteService(this)"
+                                        th:data-id="${service.id}">
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </div>
@@ -127,42 +124,38 @@
     </div>
 </div>
 
-<!-- Модальне вікно додавання/редагування товару -->
-<div class="modal fade" id="productModal" tabindex="-1">
+<!-- Модальне вікно додавання/редагування послуги -->
+<div class="modal fade" id="serviceModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Товар</h5>
+                <h5 class="modal-title">Послуга</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <form id="productForm">
-                    <input type="hidden" id="productId">
+                <form id="serviceForm">
+                    <input type="hidden" id="serviceId">
                     <div class="mb-3">
-                        <label for="productName" class="form-label">Назва</label>
-                        <input type="text" class="form-control" id="productName" required>
+                        <label for="serviceName" class="form-label">Назва</label>
+                        <input type="text" class="form-control" id="serviceName" required>
                     </div>
                     <div class="mb-3">
-                        <label for="productCategory" class="form-label">Категорія</label>
-                        <input type="text" class="form-control" id="productCategory" required>
+                        <label for="serviceBasePrice" class="form-label">Базова ціна</label>
+                        <input type="number" class="form-control" id="serviceBasePrice" step="0.01" required>
                     </div>
                     <div class="mb-3">
-                        <label for="productPrice" class="form-label">Ціна</label>
-                        <input type="number" class="form-control" id="productPrice" step="0.01" required>
+                        <label for="serviceUrgentMultiplier" class="form-label">Множник терміновості</label>
+                        <input type="number" class="form-control" id="serviceUrgentMultiplier" step="0.1" value="1.5" required>
                     </div>
                     <div class="mb-3">
-                        <label for="productQuantity" class="form-label">Кількість</label>
-                        <input type="number" class="form-control" id="productQuantity" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="productDescription" class="form-label">Опис</label>
-                        <textarea class="form-control" id="productDescription" rows="3"></textarea>
+                        <label for="serviceDescription" class="form-label">Опис</label>
+                        <textarea class="form-control" id="serviceDescription" rows="3"></textarea>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Скасувати</button>
-                <button type="button" class="btn btn-primary" onclick="saveProduct()">Зберегти</button>
+                <button type="button" class="btn btn-primary" onclick="saveService()">Зберегти</button>
             </div>
         </div>
     </div>
@@ -170,33 +163,33 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
 <script>
-    const productModal = new bootstrap.Modal(document.getElementById('productModal'));
+    const serviceModal = new bootstrap.Modal(document.getElementById('serviceModal'));
 
     function clearForm() {
-        document.getElementById('productId').value = '';
-        document.getElementById('productForm').reset();
+        document.getElementById('serviceId').value = '';
+        document.getElementById('serviceForm').reset();
+        document.getElementById('serviceUrgentMultiplier').value = '1.5'; // Значення за замовчуванням
     }
 
     function showAddModal() {
         clearForm();
-        productModal.show();
+        serviceModal.show();
     }
 
-    function editProduct(button) {
+    function editService(button) {
         const data = button.dataset;
-        document.getElementById('productId').value = data.id;
-        document.getElementById('productName').value = data.name;
-        document.getElementById('productCategory').value = data.category;
-        document.getElementById('productPrice').value = data.price;
-        document.getElementById('productQuantity').value = data.quantity;
-        document.getElementById('productDescription').value = data.description;
-        productModal.show();
+        document.getElementById('serviceId').value = data.id;
+        document.getElementById('serviceName').value = data.name;
+        document.getElementById('serviceBasePrice').value = data.basePrice;
+        document.getElementById('serviceUrgentMultiplier').value = data.urgentMultiplier;
+        document.getElementById('serviceDescription').value = data.description;
+        serviceModal.show();
     }
 
-    function deleteProduct(button) {
-        if (confirm('Ви впевнені, що хочете видалити цей товар?')) {
+    function deleteService(button) {
+        if (confirm('Ви впевнені, що хочете видалити цю послугу?')) {
             const id = button.dataset.id;
-            fetch(`/api/products/${id}`, {
+            fetch(`/api/services/${id}`, {
                 method: 'DELETE'
             }).then(() => {
                 window.location.reload();
@@ -204,18 +197,17 @@
         }
     }
 
-    function saveProduct() {
-        const id = document.getElementById('productId').value;
+    function saveService() {
+        const id = document.getElementById('serviceId').value;
         const data = {
-            name: document.getElementById('productName').value,
-            category: document.getElementById('productCategory').value,
-            price: parseFloat(document.getElementById('productPrice').value),
-            stockQuantity: parseInt(document.getElementById('productQuantity').value),
-            description: document.getElementById('productDescription').value
+            name: document.getElementById('serviceName').value,
+            basePrice: parseFloat(document.getElementById('serviceBasePrice').value),
+            urgentPriceMultiplier: parseFloat(document.getElementById('serviceUrgentMultiplier').value),
+            description: document.getElementById('serviceDescription').value
         };
 
         const method = id ? 'PUT' : 'POST';
-        const url = id ? `/api/products/${id}` : '/api/products';
+        const url = id ? `/api/services/${id}` : '/api/services';
 
         fetch(url, {
             method: method,
@@ -229,16 +221,16 @@
                 return response.json();
             })
             .then(() => {
-                productModal.hide();
+                serviceModal.hide();
                 window.location.reload();
             })
             .catch(error => {
-                alert('Error saving product: ' + error.message);
+                alert('Error saving service: ' + error.message);
             });
     }
 
     // Обробник для кнопки додавання
-    document.querySelector('[data-bs-target="#addProductModal"]')
+    document.querySelector('[data-bs-target="#serviceModal"]')
         .addEventListener('click', showAddModal);
 </script>
 

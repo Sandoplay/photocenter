@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>Управління філіями - Фотоцентр</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
+        <a class="navbar-brand" href="/">Фотоцентр</a>
+        <div class="collapse navbar-collapse">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="/home">Головна</a>
+                </li>
+            </ul>
+            <div class="d-flex align-items-center">
+                <span class="text-light me-3" sec:authentication="name"></span>
+                <form th:action="@{/auth/logout}" method="post" class="d-inline">
+                    <button type="submit" class="btn btn-outline-light btn-sm">Вийти</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="container-fluid">
+    <div class="row">
+        <!-- Сайдбар -->
+        <nav class="col-md-2 d-none d-md-block bg-dark sidebar min-vh-100">
+            <div class="position-sticky">
+                <div class="p-3 text-white">
+                    <h5>Адмін панель</h5>
+                    <p class="small" th:text="${#authentication.principal.name}">Username</p>
+                </div>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="/admin">
+                            <i class="fas fa-home me-2"></i>
+                            Головна
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active text-white" href="/admin/branches">
+                            <i class="fas fa-store me-2"></i>
+                            Філії
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="/admin/admins">
+                            <i class="fas fa-users-cog me-2"></i>
+                            Адміністратори
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="/admin/products">
+                            <i class="fas fa-box me-2"></i>
+                            Товари
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="/admin/services">
+                            <i class="fas fa-camera me-2"></i>
+                            Послуги
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+
+        <!-- Основний контент -->
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1>Управління філіями</h1>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#branchModal">
+                    <i class="fas fa-plus me-1"></i> Додати філію
+                </button>
+            </div>
+
+            <!-- Таблиці філій за типами -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <h3>Головний офіс</h3>
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Назва</th>
+                                <th>Адреса</th>
+                                <th>Робочих місць</th>
+                                <th>Дії</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="branch : ${mainOffices}">
+                                <td th:text="${branch.id}"></td>
+                                <td th:text="${branch.name}"></td>
+                                <td th:text="${branch.address}"></td>
+                                <td th:text="${branch.workplaceCount}"></td>
+                                <td>
+                                    <div class="btn-group">
+                                        <button class="btn btn-sm btn-outline-primary"
+                                                onclick="editBranch(this)"
+                                                th:data-id="${branch.id}"
+                                                th:data-name="${branch.name}"
+                                                th:data-address="${branch.address}"
+                                                th:data-workplace-count="${branch.workplaceCount}"
+                                                th:data-type="${branch.type}">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mb-4">
+                <div class="col-12">
+                    <h3>Філії</h3>
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Назва</th>
+                                <th>Адреса</th>
+                                <th>Робочих місць</th>
+                                <th>Дії</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="branch : ${branches}">
+                                <td th:text="${branch.id}"></td>
+                                <td th:text="${branch.name}"></td>
+                                <td th:text="${branch.address}"></td>
+                                <td th:text="${branch.workplaceCount}"></td>
+                                <td>
+                                    <div class="btn-group">
+                                        <button class="btn btn-sm btn-outline-primary"
+                                                onclick="editBranch(this)"
+                                                th:data-id="${branch.id}"
+                                                th:data-name="${branch.name}"
+                                                th:data-address="${branch.address}"
+                                                th:data-workplace-count="${branch.workplaceCount}"
+                                                th:data-type="${branch.type}">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger"
+                                                onclick="deleteBranch(this)"
+                                                th:data-id="${branch.id}">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-12">
+                    <h3>Кіоски</h3>
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Назва</th>
+                                <th>Адреса</th>
+                                <th>Філія</th>
+                                <th>Робочих місць</th>
+                                <th>Дії</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="kiosk : ${kiosks}">
+                                <td th:text="${kiosk.id}"></td>
+                                <td th:text="${kiosk.name}"></td>
+                                <td th:text="${kiosk.address}"></td>
+                                <td th:text="${kiosk.parentBranch?.name}"></td>
+                                <td th:text="${kiosk.workplaceCount}"></td>
+                                <td>
+                                    <div class="btn-group">
+                                        <button class="btn btn-sm btn-outline-primary"
+                                                onclick="editBranch(this)"
+                                                th:data-id="${kiosk.id}"
+                                                th:data-name="${kiosk.name}"
+                                                th:data-address="${kiosk.address}"
+                                                th:data-workplace-count="${kiosk.workplaceCount}"
+                                                th:data-type="${kiosk.type}"
+                                                th:data-parent-id="${kiosk.parentBranch?.id}">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger"
+                                                onclick="deleteBranch(this)"
+                                                th:data-id="${kiosk.id}">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+
+<!-- Модальне вікно додавання/редагування філії -->
+<div class="modal fade" id="branchModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Філія</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="branchForm">
+                    <input type="hidden" id="branchId">
+                    <div class="mb-3">
+                        <label for="branchType" class="form-label">Тип</label>
+                        <select class="form-select" id="branchType" onchange="handleBranchTypeChange()">
+                            <option value="MAIN_OFFICE">Головний офіс</option>
+                            <option value="BRANCH">Філія</option>
+                            <option value="KIOSK">Кіоск</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="branchName" class="form-label">Назва</label>
+                        <input type="text" class="form-control" id="branchName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="branchAddress" class="form-label">Адреса</label>
+                        <input type="text" class="form-control" id="branchAddress" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="workplaceCount" class="form-label">Кількість робочих місць</label>
+                        <input type="number" class="form-control" id="workplaceCount" min="1" required>
+                    </div>
+                    <div class="mb-3" id="parentBranchContainer" style="display: none;">
+                        <label for="parentBranch" class="form-label">Філія</label>
+                        <select class="form-select" id="parentBranch">
+                            <option value="">Оберіть філію</option>
+                            <option th:each="branch : ${branches}"
+                                    th:value="${branch.id}"
+                                    th:text="${branch.name}">
+                            </option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Скасувати</button>
+                <button type="button" class="btn btn-primary" onclick="saveBranch()">Зберегти</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+<script>
+    const branchModal = new bootstrap.Modal(document.getElementById('branchModal'));
+    let editMode = false;
+
+    function handleBranchTypeChange() {
+        const type = document.getElementById('branchType').value;
+        const parentBranchContainer = document.getElementById('parentBranchContainer');
+        parentBranchContainer.style.display = type === 'KIOSK' ? 'block' : 'none';
+    }
+
+    function showAddModal() {
+        editMode = false;
+        document.getElementById('branchForm').reset();
+        document.getElementById('branchId').value = '';
+        document.getElementById('branchType').disabled = false;
+        document.querySelector('#branchModal .modal-title').textContent = 'Нова філія';
+        handleBranchTypeChange();
+        branchModal.show();
+    }
+
+    function editBranch(button) {
+        editMode = true;
+        const data = button.dataset;
+
+        document.getElementById('branchId').value = data.id;
+        document.getElementById('branchName').value = data.name;
+        document.getElementById('branchAddress').value = data.address;
+        document.getElementById('workplaceCount').value = data.workplaceCount;
+        document.getElementById('branchType').value = data.type;
+        document.getElementById('branchType').disabled = true;
+
+        if (data.type === 'KIOSK' && data.parentId) {
+            document.getElementById('parentBranch').value = data.parentId;
+        }
+
+        document.querySelector('#branchModal .modal-title').textContent = 'Редагування філії';
+        handleBranchTypeChange();
+        branchModal.show();
+    }
+
+    function saveBranch() {
+        const data = {
+            name: document.getElementById('branchName').value,
+            address: document.getElementById('branchAddress').value,
+            workplaceCount: parseInt(document.getElementById('workplaceCount').value),
+            type: document.getElementById('branchType').value
+        };
+
+        if (data.type === 'KIOSK') {
+            const parentId = document.getElementById('parentBranch').value;
+            if (parentId) {
+                data.parentBranch = { id: parseInt(parentId) };
+            }
+        }
+
+        const method = editMode ? 'PUT' : 'POST';
+        const url = editMode
+            ? `/api/branches/${document.getElementById('branchId').value}`
+            : '/api/branches';
+
+        fetch(url, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        })
+            .then(response => {
+                if (!response.ok) throw new Error('Network response was not ok');
+                return response.json();
+            })
+            .then(() => {
+                branchModal.hide();
+                window.location.reload();
+            })
+            .catch(error => {
+                alert('Error saving branch: ' + error.message);
+            });
+    }
+
+    function deleteBranch(button) {
+        if (confirm('Ви впевнені, що хочете видалити цю філію?')) {
+            const id = button.dataset.id;
+            fetch(`/api/branches/${id}`, {
+                method: 'DELETE'
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.text().then(text => {
+                            throw new Error(text || 'Could not delete branch');
+                        });
+                    }
+                    window.location.reload();
+                })
+                .catch(error => {
+                    alert('Error deleting branch: ' + error.message);
+                });
+        }
+    }
+
+    // Обробник для кнопки додавання
+    document.querySelector('[data-bs-target="#branchModal"]')
+        .addEventListener('click', showAddModal);
+</script>
