@@ -1,11 +1,14 @@
 package org.sandopla.photocenter.controller;
 
+import org.sandopla.photocenter.model.Client;
 import org.sandopla.photocenter.model.DiscountCard;
+import org.sandopla.photocenter.service.ClientService;
 import org.sandopla.photocenter.service.DiscountCardService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @RestController
@@ -13,38 +16,69 @@ import java.util.List;
 public class DiscountCardController {
 
     private final DiscountCardService discountCardService;
+    private final ClientService clientService;
 
-    @Autowired
-    public DiscountCardController(DiscountCardService discountCardService) {
+
+
+    public DiscountCardController(DiscountCardService discountCardService, ClientService clientService) {
         this.discountCardService = discountCardService;
+        this.clientService = clientService;
+
     }
 
-    @GetMapping
-    public List<DiscountCard> getAllDiscountCards() {
-        return discountCardService.getAllDiscountCards();
+    @PostMapping("/clients/{clientId}")
+    public ResponseEntity<DiscountCard> createCard(@PathVariable Long clientId) {
+        try {
+            DiscountCard card = discountCardService.createDiscountCard(getClient(clientId));
+            return ResponseEntity.ok(card);
+        } catch (IllegalStateException e) {
+            return ResponseEntity.badRequest().build();
+        }
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<DiscountCard> getDiscountCardById(@PathVariable Long id) {
-        DiscountCard discountCard = discountCardService.getDiscountCardById(id);
-        return ResponseEntity.ok(discountCard);
+    @PutMapping("/{cardNumber}/deactivate")
+    public ResponseEntity<Void> deactivateCard(@PathVariable String cardNumber) {
+        try {
+            discountCardService.deactivateCard(cardNumber);
+            return ResponseEntity.ok().build();
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 
-    @PostMapping
-    public ResponseEntity<DiscountCard> createDiscountCard(@RequestBody DiscountCard discountCard) {
-        DiscountCard newDiscountCard = discountCardService.createDiscountCard(discountCard);
-        return ResponseEntity.ok(newDiscountCard);
+    @PutMapping("/{cardNumber}/extend")
+    public ResponseEntity<DiscountCard> extendCard(
+            @PathVariable String cardNumber,
+            @RequestParam int months) {
+        try {
+            DiscountCard card = discountCardService.extendValidity(cardNumber, months);
+            return ResponseEntity.ok(card);
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<DiscountCard> updateDiscountCard(@PathVariable Long id, @RequestBody DiscountCard discountCardDetails) {
-        DiscountCard updatedDiscountCard = discountCardService.updateDiscountCard(id, discountCardDetails);
-        return ResponseEntity.ok(updatedDiscountCard);
+    @PutMapping("/{cardNumber}/discount")
+    public ResponseEntity<DiscountCard> updateDiscount(
+            @PathVariable String cardNumber,
+            @RequestParam BigDecimal percentage) {
+        try {
+            DiscountCard card = discountCardService.updateDiscountPercentage(cardNumber, percentage);
+            return ResponseEntity.ok(card);
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteDiscountCard(@PathVariable Long id) {
-        discountCardService.deleteDiscountCard(id);
-        return ResponseEntity.ok().build();
+    @GetMapping("/{cardNumber}/valid")
+    public ResponseEntity<Boolean> checkValidity(@PathVariable String cardNumber) {
+        boolean isValid = discountCardService.isCardValid(cardNumber);
+        return ResponseEntity.ok(isValid);
+    }
+
+    // Допоміжний метод для отримання клієнта
+    private Client getClient(Long clientId) {
+        // TODO: Implement client retrieval
+        return clientService.getClientById(clientId);
     }
 }

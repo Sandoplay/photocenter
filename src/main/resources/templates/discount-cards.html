@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>Дисконтні карти - Фотоцентр</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .card-status {
+            font-size: 0.9em;
+            padding: 0.25em 0.5em;
+            border-radius: 0.25rem;
+        }
+        .status-active { background-color: #d4edda; color: #155724; }
+        .status-expired { background-color: #f8d7da; color: #721c24; }
+        .status-inactive { background-color: #e2e3e5; color: #383d41; }
+    </style>
+</head>
+<body>
+<!-- Навігаційна панель -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
+        <a class="navbar-brand" href="/">Фотоцентр</a>
+        <div class="collapse navbar-collapse">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="/home">Головна</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/create-order">Створити замовлення</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link active" href="/discount-cards">Дисконтні карти</a>
+                </li>
+            </ul>
+            <div class="d-flex align-items-center">
+                <span class="text-light me-3" sec:authorize="isAuthenticated()" th:text="${#authentication.name}"></span>
+                <a sec:authorize="!isAuthenticated()" href="/auth/login" class="btn btn-outline-light me-2">Увійти</a>
+                <form sec:authorize="isAuthenticated()" th:action="@{/auth/logout}" method="post" class="d-inline">
+                    <button type="submit" class="btn btn-outline-light">Вийти</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- Після контейнера з основним контентом додамо кнопку повернення -->
+<div class="container mt-4 mb-4">
+    <a href="/home" class="btn btn-secondary">
+        <i class="fas fa-arrow-left me-2"></i>Повернутися на головну
+    </a>
+</div>
+
+<div class="container mt-4">
+    <!-- Додати після <div class="container mt-4"> -->
+    <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show" role="alert">
+        <span th:text="${successMessage}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show" role="alert">
+        <span th:text="${errorMessage}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    <!-- Інформація для клієнта -->
+    <div class="row mb-4">
+        <div class="col">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Інформація про дисконтну програму</h5>
+                    <p class="card-text">
+                        Отримайте дисконтну карту та економте на кожному замовленні:
+                    </p>
+                    <ul>
+                        <li>Базова знижка 10% на всі послуги друку</li>
+                        <li>Термін дії карти - 1 рік</li>
+                        <li>Можливість продовження терміну дії</li>
+                        <li>Знижка діє на всі філії мережі</li>
+                    </ul>
+                    <div sec:authorize="isAuthenticated()">
+                        <form th:if="${!hasActiveCard}" th:action="@{/discount-cards/buy}" method="post">
+                            <input type="hidden" name="clientId" th:value="${clientId}">
+                            <button type="submit" class="btn btn-primary">Придбати карту</button>
+                        </form>
+                        <div th:if="${hasActiveCard}" class="alert alert-info">
+                            У вас вже є активна дисконтна карта
+                        </div>
+                    </div>
+                    <div sec:authorize="!isAuthenticated()" class="alert alert-warning">
+                        Для придбання карти необхідно <a href="/auth/login">увійти в систему</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Таблиця карт клієнта -->
+    <div class="row" sec:authorize="isAuthenticated()">
+        <div class="col">
+            <h4>Мої дисконтні карти</h4>
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                    <tr>
+                        <th>Номер карти</th>
+                        <th>Дата видачі</th>
+                        <th>Діє до</th>
+                        <th>Знижка</th>
+                        <th>Статус</th>
+                        <th>Дії</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="card : ${clientCards}">
+                        <td th:text="${card.cardNumber}"></td>
+                        <td th:text="${#temporals.format(card.issueDate, 'dd.MM.yyyy')}"></td>
+                        <td th:text="${#temporals.format(card.expiryDate, 'dd.MM.yyyy')}"></td>
+                        <td th:text="${card.discountPercentage * 100 + '%'}"></td>
+                        <td>
+                                    <span th:if="${card.active && card.expiryDate.isAfter(T(java.time.LocalDate).now())}"
+                                          class="card-status status-active">
+                                        Активна
+                                    </span>
+                            <span th:if="${card.active && card.expiryDate.isBefore(T(java.time.LocalDate).now())}"
+                                  class="card-status status-expired">
+                                        Закінчилась
+                                    </span>
+                            <span th:if="${!card.active}"
+                                  class="card-status status-inactive">
+                                        Неактивна
+                                    </span>
+                        </td>
+                        <td>
+                            <form th:if="${card.active && card.expiryDate.isBefore(T(java.time.LocalDate).now())}"
+                                  th:action="@{/discount-cards/extend}" method="post" style="display: inline;">
+                                <input type="hidden" name="cardNumber" th:value="${card.cardNumber}">
+                                <button type="submit" class="btn btn-sm btn-outline-primary">
+                                    Продовжити
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(clientCards)}">
+                        <td colspan="6" class="text-center">У вас ще немає дисконтних карт</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

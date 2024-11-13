@@ -13,16 +13,22 @@ public class DiscountCard {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @OneToOne
+    @Column(nullable = false, unique = true)
+    private String cardNumber;
+
+    @ManyToOne
     @JoinColumn(name = "client_id", nullable = false)
     private Client client;
 
-    @Column(name = "discount_percentage", nullable = false)
+    @Column(name = "discount_percentage", nullable = false, precision = 5, scale = 2)
     private BigDecimal discountPercentage;
 
     @Column(name = "issue_date", nullable = false)
     private LocalDate issueDate;
 
-    @Column(name = "expiration_date")
-    private LocalDate expirationDate;
+    @Column(name = "expiry_date")
+    private LocalDate expiryDate;
+
+    @Column(nullable = false)
+    private boolean active = true;
 }

@@ -63,12 +63,19 @@ public class OrderController {
         }
     }
 
+
+
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'USER')")
     public ResponseEntity<?> getOrderById(@PathVariable Long id, Authentication authentication) {
         try {
             Client client = (Client) authentication.getPrincipal();
             Order order = orderService.getOrderById(id);
+
+            // Перевіряємо, чи це замовлення належить поточному користувачу
+            if (!order.getClient().getId().equals(client.getId())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            }
 
             // Перевіряємо права доступу
             boolean hasAccess = false;

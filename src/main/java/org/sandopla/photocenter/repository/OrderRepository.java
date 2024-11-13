@@ -3,6 +3,7 @@ package org.sandopla.photocenter.repository;
 import org.sandopla.photocenter.model.Order;
 import org.sandopla.photocenter.model.Client;
 import org.sandopla.photocenter.model.Branch;
+import org.sandopla.photocenter.model.Product;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -72,4 +73,16 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
             @Param("branch") Branch branch,
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end);
+
+
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.client = :client AND o.branch = :branch")
+    int countByClientAndBranch(@Param("client") Client client, @Param("branch") Branch branch);
+
+    @Query("SELECT COUNT(o) > 0 FROM Order o " +
+            "JOIN o.orderDetails od " +
+            "WHERE od.product = :product " +
+            "AND o.branch = :branch " +
+            "AND o.client = :client")
+    boolean existsByProductAndBranch(@Param("product") Product product,
+                                     @Param("branch") Branch branch);
 }

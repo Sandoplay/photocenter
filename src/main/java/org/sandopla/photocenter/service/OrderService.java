@@ -24,42 +24,66 @@ public class OrderService {
 
     private final OrderRepository orderRepository;
     private final OrderDetailService orderDetailService;
+    private final DiscountService discountService;
+
 
     @Autowired
-    public OrderService(OrderRepository orderRepository, OrderDetailService orderDetailService) {
+    public OrderService(OrderRepository orderRepository, OrderDetailService orderDetailService, DiscountService discountService) {
         this.orderRepository = orderRepository;
         this.orderDetailService = orderDetailService;
+        this.discountService = discountService;
+
     }
 
     @Transactional
     public Order createOrder(Order order, List<OrderDetail> orderDetails) {
+        // Перевіряємо обмеження для термінових замовлень
+        if (order.isUrgent() && order.getBranch().getType() == Branch.BranchType.KIOSK) {
+            throw new IllegalStateException("Термінові замовлення приймаються тільки у філіях");
+        }
+
         // Зберігаємо замовлення
         order.setOrderDetails(new ArrayList<>());
         order.setTotalCost(BigDecimal.ZERO);
         Order savedOrder = orderRepository.save(order);
 
+        // Розраховуємо загальну вартість з урахуванням знижок
         BigDecimal totalCost = BigDecimal.ZERO;
 
-        // Обробляємо кожну деталь замовлення
         for (OrderDetail detail : orderDetails) {
-            try {
-                // Прив'язуємо деталь до замовлення
-                detail.setOrder(savedOrder);
+            detail.setOrder(savedOrder);
 
-                // Створюємо і зберігаємо деталь
-                OrderDetail savedDetail = orderDetailService.createOrderDetail(detail);
-                savedOrder.getOrderDetails().add(savedDetail);
-
-                // Додаємо до загальної суми
-                totalCost = totalCost.add(savedDetail.getPrice());
-            } catch (Exception e) {
-                throw new RuntimeException("Error processing order detail: " + e.getMessage());
+            // Перевіряємо безкоштовну проявку плівки
+            if (isFilmDevelopmentService(detail) &&
+                    discountService.isFilmDevelopmentFree(detail.getProduct(), order.getBranch())) {
+                detail.setPrice(BigDecimal.ZERO);
             }
+
+            OrderDetail savedDetail = orderDetailService.createOrderDetail(detail);
+            savedOrder.getOrderDetails().add(savedDetail);
+
+            totalCost = totalCost.add(savedDetail.getPrice());
         }
 
-        // Оновлюємо загальну суму замовлення
-        savedOrder.setTotalCost(totalCost);
+        // Застосовуємо знижки
+        BigDecimal discountPercentage = discountService.calculateTotalDiscount(savedOrder);
+        BigDecimal discount = totalCost.multiply(discountPercentage);
+
+        savedOrder.setTotalCost(totalCost.subtract(discount));
         return orderRepository.save(savedOrder);
+    }
+
+    private boolean isFilmDevelopmentService(OrderDetail detail) {
+        if (detail.getService() == null || detail.getService().getName() == null) {
+            return false;
+        }
+
+        if (detail.getProduct() == null || detail.getProduct().getCategory() == null) {
+            return false;
+        }
+
+        return detail.getService().getName().toLowerCase().contains("проявка") &&
+                detail.getProduct().getCategory().equals("FILM");
     }
 
     private void validateOrderDetail(OrderDetail detail) {

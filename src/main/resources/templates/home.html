@@ -72,7 +72,54 @@
                         </tr>
                         </thead>
                         <tbody>
-                        <!-- Тут буде список замовлень -->
+                        <tr th:each="order : ${recentOrders}">
+                            <td th:text="${order.id}">ID</td>
+                            <td th:text="${#temporals.format(order.orderDate, 'dd.MM.yyyy HH:mm')}">Дата</td>
+                            <td th:text="${order.branch.name}">Філія</td>
+                            <td>
+                <span th:class="'badge ' +
+                    (${order.status.name() == 'NEW'} ? 'bg-primary' : '') +
+                    (${order.status.name() == 'IN_PROGRESS'} ? 'bg-warning text-dark' : '') +
+                    (${order.status.name() == 'COMPLETED'} ? 'bg-success' : '') +
+                    (${order.status.name() == 'CANCELLED'} ? 'bg-danger' : '')"
+                      th:text="${order.status.name() == 'NEW' ? 'Нове' :
+                               order.status.name() == 'IN_PROGRESS' ? 'В обробці' :
+                               order.status.name() == 'COMPLETED' ? 'Виконано' :
+                               order.status.name() == 'CANCELLED' ? 'Скасовано' : order.status}">
+                </span>
+                                <span th:if="${order.urgent}" class="badge bg-danger ms-1" title="Термінове">
+                    <i class="fas fa-bolt"></i>
+                </span>
+                            </td>
+                            <td th:text="${#numbers.formatDecimal(order.totalCost, 1, 2) + '₴'}">Сума</td>
+                            <td>
+                                <div class="btn-group">
+                                    <button type="button"
+                                            class="btn btn-sm btn-outline-primary"
+                                            th:onclick="'viewOrderDetails(' + ${order.id} + ')'"
+                                            title="Деталі">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <!-- Кнопка скасування для нових замовлень -->
+                                    <form th:if="${order.status.name() == 'NEW'}"
+                                          th:action="@{'/orders/' + ${order.id} + '/cancel'}"
+                                          method="post"
+                                          style="display: inline;">
+                                        <!-- Змінюємо кнопку видалення в таблиці -->
+                                        <button th:if="${order.status.name() == 'NEW'}"
+                                                type="button"
+                                                class="btn btn-sm btn-outline-danger"
+                                                th:onclick="'deleteOrder(' + ${order.id} + ')'"
+                                                title="Скасувати">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(recentOrders)}">
+                            <td colspan="6" class="text-center">У вас ще немає замовлень</td>
+                        </tr>
                         </tbody>
                     </table>
                 </div>
@@ -81,6 +128,124 @@
     </div>
 </div>
 
+<!-- Додати перед закриттям body -->
+<div class="modal fade" id="orderDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Деталі замовлення #<span id="orderNumber"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <h6>Інформація про замовлення</h6>
+                        <p><strong>Дата створення:</strong> <span id="orderDate"></span></p>
+                        <p><strong>Філія:</strong> <span id="branchName"></span></p>
+                        <p><strong>Статус:</strong> <span id="orderStatus"></span></p>
+                        <p><strong>Терміновість:</strong> <span id="orderUrgent"></span></p>
+                    </div>
+                </div>
+                <h6>Позиції замовлення</h6>
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                        <tr>
+                            <th>Назва</th>
+                            <th>Тип</th>
+                            <th>Кількість</th>
+                            <th>Ціна</th>
+                        </tr>
+                        </thead>
+                        <tbody id="orderItems">
+                        </tbody>
+                    </table>
+                </div>
+                <div class="text-end mt-3">
+                    <h5>Загальна сума: <span id="orderTotal"></span></h5>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрити</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+<script th:inline="javascript">
+    const orderDetailsModal = new bootstrap.Modal(document.getElementById('orderDetailsModal'));
+
+    function viewOrderDetails(orderId) {
+        fetch(`/api/orders/${orderId}`)
+            .then(response => response.json())
+            .then(order => {
+                // Заповнюємо основну інформацію
+                document.getElementById('orderNumber').textContent = order.id;
+                document.getElementById('orderDate').textContent = new Date(order.orderDate).toLocaleString('uk-UA');
+                document.getElementById('branchName').textContent = order.branchName;
+                document.getElementById('orderTotal').textContent = order.totalCost + '₴';
+
+                // Статус
+                const statusBadge = document.createElement('span');
+                statusBadge.className = 'badge ' +
+                    (order.status === 'NEW' ? 'bg-primary' :
+                        order.status === 'IN_PROGRESS' ? 'bg-warning text-dark' :
+                            order.status === 'COMPLETED' ? 'bg-success' :
+                                order.status === 'CANCELLED' ? 'bg-danger' : '');
+                statusBadge.textContent = order.status === 'NEW' ? 'Нове' :
+                    order.status === 'IN_PROGRESS' ? 'В обробці' :
+                        order.status === 'COMPLETED' ? 'Виконано' :
+                            order.status === 'CANCELLED' ? 'Скасовано' : order.status;
+                document.getElementById('orderStatus').innerHTML = '';
+                document.getElementById('orderStatus').appendChild(statusBadge);
+
+                // Терміновість
+                document.getElementById('orderUrgent').textContent = order.urgent ? 'Термінове' : 'Звичайне';
+
+                // Заповнюємо таблицю деталей
+                const tbody = document.getElementById('orderItems');
+                tbody.innerHTML = '';
+                order.orderDetails.forEach(detail => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${detail.productName || detail.serviceName}</td>
+                        <td>${detail.productName ? 'Товар' : 'Послуга'}</td>
+                        <td>${detail.quantity}</td>
+                        <td>${detail.price}₴</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+
+                orderDetailsModal.show();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Помилка при завантаженні деталей замовлення');
+            });
+    }
+    function deleteOrder(orderId) {
+        if (confirm('Ви впевнені, що хочете скасувати замовлення?')) {
+            fetch(`/api/orders/${orderId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to delete order');
+                    }
+                    // Перезавантажуємо сторінку після успішного видалення
+                    window.location.reload();
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Помилка при видаленні замовлення');
+                });
+        }
+    }
+
+</script>
 </body>
 </html>
