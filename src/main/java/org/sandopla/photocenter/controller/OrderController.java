@@ -67,44 +67,34 @@ public class OrderController {
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'USER')")
-    public ResponseEntity<?> getOrderById(@PathVariable Long id, Authentication authentication) {
-        try {
-            Client client = (Client) authentication.getPrincipal();
-            Order order = orderService.getOrderById(id);
+    public ResponseEntity<OrderResponse> getOrderById(@PathVariable Long id, Authentication authentication) {
+        Client client = (Client) authentication.getPrincipal();
+        Order order = orderService.getOrderById(id);
 
-            // Перевіряємо, чи це замовлення належить поточному користувачу
-            if (!order.getClient().getId().equals(client.getId())) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-            }
+        // Перевіряємо права доступу
+        boolean hasAccess = false;
 
-            // Перевіряємо права доступу
-            boolean hasAccess = false;
-
-            if (client.getRole() == Role.OWNER) {
-                hasAccess = true;
-            } else if (client.getRole() == Role.ADMIN) {
-                // Адміністратор має доступ до замовлень своєї філії та її кіосків
-                Branch adminBranch = client.getBranch();
-                hasAccess = order.getBranch().equals(adminBranch) ||
-                        (order.getBranch().getParentBranch() != null &&
-                                order.getBranch().getParentBranch().equals(adminBranch));
-            } else {
-                // Звичайний користувач має доступ тільки до своїх замовлень
-                hasAccess = order.getClient().getId().equals(client.getId());
-            }
-
-            if (!hasAccess) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body("You don't have permission to view this order");
-            }
-
-            OrderResponse orderResponse = OrderResponse.fromOrder(order);
-            return ResponseEntity.ok(orderResponse);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error retrieving order: " + e.getMessage());
+        if (client.getRole() == Role.OWNER) {
+            hasAccess = true;
+        } else if (client.getRole() == Role.ADMIN) {
+            // Адмін має доступ до замовлень своєї філії та її кіосків
+            Branch adminBranch = client.getBranch();
+            hasAccess = order.getBranch().equals(adminBranch) ||
+                    (order.getBranch().getParentBranch() != null &&
+                            order.getBranch().getParentBranch().equals(adminBranch));
+        } else {
+            // Звичайний користувач має доступ тільки до своїх замовлень
+            hasAccess = order.getClient().getId().equals(client.getId());
         }
+
+        if (!hasAccess) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        return ResponseEntity.ok(OrderResponse.fromOrder(order));
     }
+
+
 
     @GetMapping("/my")
     public ResponseEntity<List<OrderResponse>> getMyOrders(Authentication authentication) {  // Змінено тип повернення

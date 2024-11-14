@@ -193,10 +193,27 @@
     function handleItemSelect(select) {
         const container = select.closest('.orderDetail');
         const option = select.options[select.selectedIndex];
-        const price = parseFloat(option.dataset.price);
+        const itemType = container.querySelector('.item-type').value;
+        const quantity = parseInt(container.querySelector('.quantity').value) || 1;
 
-        container.querySelector('.item-price').textContent = price.toFixed(2);
-        updateDetailTotal(container);
+        // Зараз ми беремо ціну з option.dataset.price, але не множимо на кількість
+        let basePrice = parseFloat(option.dataset.price);
+        let totalPrice = basePrice * quantity;  // Додаємо множення на кількість
+
+        // Оновлюємо відображення цін
+        container.querySelector('.item-price').textContent = basePrice.toFixed(2);
+        container.querySelector('.detail-total').textContent = totalPrice.toFixed(2);
+
+        updateOrderTotal();
+    }
+
+    // Додаємо обробник зміни кількості
+    function handleQuantityChange(input) {
+        const container = input.closest('.orderDetail');
+        const itemSelect = container.querySelector('.item-select');
+        if (itemSelect.value) {
+            handleItemSelect(itemSelect);
+        }
     }
 
     function updateDetailTotal(container) {

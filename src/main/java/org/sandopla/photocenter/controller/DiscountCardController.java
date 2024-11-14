@@ -78,7 +78,6 @@ public class DiscountCardController {
 
     // Допоміжний метод для отримання клієнта
     private Client getClient(Long clientId) {
-        // TODO: Implement client retrieval
         return clientService.getClientById(clientId);
     }
 }

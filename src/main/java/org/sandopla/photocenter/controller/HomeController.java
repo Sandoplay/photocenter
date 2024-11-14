@@ -31,6 +31,11 @@ public class HomeController {
         return "home";
     }
 
+    @GetMapping("/create-order")
+    public String createOrder() {
+        return "create-order";  // це вказує на templates/create-order.html
+    }
+
     @GetMapping("/")
     public String index() {
         return "redirect:/home";

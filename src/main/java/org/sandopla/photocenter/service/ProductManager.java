@@ -1,8 +1,8 @@
 package org.sandopla.photocenter.service;
 
-import org.sandopla.photocenter.model.Manufacturer;
+//import org.sandopla.photocenter.model.Manufacturer;
 import org.sandopla.photocenter.model.Product;
-import org.sandopla.photocenter.repository.ManufacturerRepository;
+//import org.sandopla.photocenter.repository.ManufacturerRepository;
 import org.sandopla.photocenter.repository.ProductRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -12,13 +12,11 @@ import java.util.List;
 @Service
 public class ProductManager {
     private final ProductRepository productRepository;
-    private final ManufacturerRepository manufacturerRepository;
+    //private final ManufacturerRepository manufacturerRepository;
 
     @Autowired
-    public ProductManager(ProductRepository productRepository,
-                          ManufacturerRepository manufacturerRepository) {
+    public ProductManager(ProductRepository productRepository) {
         this.productRepository = productRepository;
-        this.manufacturerRepository = manufacturerRepository;
     }
 
     public List<Product> getAllProducts() {
@@ -37,11 +35,11 @@ public class ProductManager {
         }
 
         // Перевірка і встановлення виробника якщо вказаний
-        if (product.getManufacturer() != null && product.getManufacturer().getId() != null) {
-            Manufacturer manufacturer = manufacturerRepository.findById(product.getManufacturer().getId())
-                    .orElseThrow(() -> new RuntimeException("Manufacturer not found"));
-            product.setManufacturer(manufacturer);
-        }
+//        if (product.getManufacturer() != null && product.getManufacturer().getId() != null) {
+//            Manufacturer manufacturer = manufacturerRepository.findById(product.getManufacturer().getId())
+//                    .orElseThrow(() -> new RuntimeException("Manufacturer not found"));
+//            product.setManufacturer(manufacturer);
+//        }
 
         return productRepository.save(product);
     }
@@ -56,13 +54,13 @@ public class ProductManager {
         product.setStockQuantity(productDetails.getStockQuantity());
 
         // Оновлення виробника якщо вказаний
-        if (productDetails.getManufacturer() != null && productDetails.getManufacturer().getId() != null) {
-            Manufacturer manufacturer = manufacturerRepository.findById(productDetails.getManufacturer().getId())
-                    .orElseThrow(() -> new RuntimeException("Manufacturer not found"));
-            product.setManufacturer(manufacturer);
-        } else {
-            product.setManufacturer(null);
-        }
+//        if (productDetails.getManufacturer() != null && productDetails.getManufacturer().getId() != null) {
+//            Manufacturer manufacturer = manufacturerRepository.findById(productDetails.getManufacturer().getId())
+//                    .orElseThrow(() -> new RuntimeException("Manufacturer not found"));
+//            product.setManufacturer(manufacturer);
+//        } else {
+//            product.setManufacturer(null);
+//        }
 
         return productRepository.save(product);
     }

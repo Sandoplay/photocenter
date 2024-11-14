@@ -4,6 +4,7 @@ import org.sandopla.photocenter.model.Product;
 import org.sandopla.photocenter.repository.ProductRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -37,8 +38,18 @@ public class ProductService {
         product.setCategory(productDetails.getCategory());
         product.setPrice(productDetails.getPrice());
         product.setStockQuantity(productDetails.getStockQuantity());
-        product.setManufacturer(productDetails.getManufacturer());
+        //product.setManufacturer(productDetails.getManufacturer());
         return productRepository.save(product);
+    }
+
+    // Додаємо метод для оновлення кількості
+    @Transactional
+    public void decreaseProductQuantity(Product product, Integer quantity) {
+        if (product.getStockQuantity() < quantity) {
+            throw new RuntimeException("Not enough products in stock");
+        }
+        product.setStockQuantity(product.getStockQuantity() - quantity);
+        productRepository.save(product);
     }
 
     public void deleteProduct(Long id) {

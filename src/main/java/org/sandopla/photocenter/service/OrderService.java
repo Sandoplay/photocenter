@@ -3,12 +3,12 @@ package org.sandopla.photocenter.service;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.persistence.criteria.Subquery;
 import org.sandopla.photocenter.model.*;
+import org.sandopla.photocenter.repository.DiscountCardRepository;
 import org.sandopla.photocenter.repository.OrderRepository;
-import org.sandopla.photocenter.repository.specifications.OrderSpecifications;
+import org.sandopla.photocenter.repository.ProductRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,57 +21,87 @@ import java.util.stream.Collectors;
 
 @Service
 public class OrderService {
-
     private final OrderRepository orderRepository;
     private final OrderDetailService orderDetailService;
-    private final DiscountService discountService;
-
+    private final DiscountCardService discountCardService;
+    private final DiscountCardRepository discountCardRepository;
+    private final ProductRepository productRepository;
 
     @Autowired
-    public OrderService(OrderRepository orderRepository, OrderDetailService orderDetailService, DiscountService discountService) {
+    public OrderService(OrderRepository orderRepository,
+                        OrderDetailService orderDetailService,
+                        DiscountCardService discountCardService,
+                        DiscountCardRepository discountCardRepository,
+                        ProductRepository productRepository) {
         this.orderRepository = orderRepository;
         this.orderDetailService = orderDetailService;
-        this.discountService = discountService;
-
+        this.discountCardService = discountCardService;
+        this.discountCardRepository = discountCardRepository;
+        this.productRepository = productRepository;
     }
 
     @Transactional
     public Order createOrder(Order order, List<OrderDetail> orderDetails) {
-        // Перевіряємо обмеження для термінових замовлень
-        if (order.isUrgent() && order.getBranch().getType() == Branch.BranchType.KIOSK) {
-            throw new IllegalStateException("Термінові замовлення приймаються тільки у філіях");
-        }
-
-        // Зберігаємо замовлення
         order.setOrderDetails(new ArrayList<>());
-        order.setTotalCost(BigDecimal.ZERO);
         Order savedOrder = orderRepository.save(order);
 
-        // Розраховуємо загальну вартість з урахуванням знижок
+        int totalPhotos = orderDetails.stream()
+                .filter(detail -> detail.getService() != null)
+                .mapToInt(OrderDetail::getQuantity)
+                .sum();
+
+        BigDecimal volumeDiscount = calculateVolumeDiscount(totalPhotos);
         BigDecimal totalCost = BigDecimal.ZERO;
 
-        for (OrderDetail detail : orderDetails) {
-            detail.setOrder(savedOrder);
+        boolean hasDiscountCard = discountCardService.getClientDiscount(order.getClient()).isPresent();
+        List<DiscountCard> sus = discountCardRepository.findByClient(order.getClient());
+        hasDiscountCard = sus.getFirst().isActive();
 
-            // Перевіряємо безкоштовну проявку плівки
-            if (isFilmDevelopmentService(detail) &&
-                    discountService.isFilmDevelopmentFree(detail.getProduct(), order.getBranch())) {
-                detail.setPrice(BigDecimal.ZERO);
+        for (OrderDetail detail : orderDetails) {
+            // Якщо це товар, оновлюємо його кількість
+            if (detail.getProduct() != null) {
+                // Отримуємо свіжу версію продукту
+                Product product = productRepository.findById(detail.getProduct().getId())
+                        .orElseThrow(() -> new RuntimeException("Product not found with id: " + detail.getProduct().getId()));
+
+                int currentStock = product.getStockQuantity();
+                int requestedQuantity = detail.getQuantity();
+
+                if (currentStock < requestedQuantity) {
+                    throw new RuntimeException("Not enough stock for product: " + product.getName() +
+                            ". Available: " + currentStock + ", Requested: " + requestedQuantity);
+                }
+
+                // Оновлюємо кількість
+                product.setStockQuantity(currentStock - requestedQuantity);
+                productRepository.save(product);
+
+                // Оновлюємо продукт в detail
+                detail.setProduct(product);
             }
 
-            OrderDetail savedDetail = orderDetailService.createOrderDetail(detail);
+            detail.setOrder(savedOrder);
+            OrderDetail savedDetail = orderDetailService.createOrderDetail(detail, volumeDiscount, hasDiscountCard);
             savedOrder.getOrderDetails().add(savedDetail);
-
             totalCost = totalCost.add(savedDetail.getPrice());
         }
 
-        // Застосовуємо знижки
-        BigDecimal discountPercentage = discountService.calculateTotalDiscount(savedOrder);
-        BigDecimal discount = totalCost.multiply(discountPercentage);
+        if (order.isUrgent()) {
+            totalCost = totalCost.multiply(new BigDecimal("2"));
+        }
 
-        savedOrder.setTotalCost(totalCost.subtract(discount));
+        savedOrder.setTotalCost(totalCost);
         return orderRepository.save(savedOrder);
     }
+
+    private BigDecimal calculateVolumeDiscount(int quantity) {
+        if (quantity >= 50) return new BigDecimal("0.20");      // 20% знижка за 50+ одиниць
+        if (quantity >= 30) return new BigDecimal("0.15");      // 15% знижка за 30+ одиниць
+        if (quantity >= 20) return new BigDecimal("0.10");      // 10% знижка за 20+ одиниць
+        if (quantity >= 10) return new BigDecimal("0.05");      // 5% знижка за 10+ одиниць
+        return BigDecimal.ZERO;
+    }
+
 
     private boolean isFilmDevelopmentService(OrderDetail detail) {
         if (detail.getService() == null || detail.getService().getName() == null) {
@@ -137,14 +167,32 @@ public class OrderService {
         order.setStatus(orderDetails.getStatus());
         order.setUrgent(orderDetails.isUrgent());
 
-        // Оновлюємо деталі замовлення
+        // Рахуємо загальну кількість фотографій для знижки
+        int totalPhotos = newOrderDetails.stream()
+                .filter(detail -> detail.getService() != null)
+                .mapToInt(OrderDetail::getQuantity)
+                .sum();
+
+        BigDecimal volumeDiscount = calculateVolumeDiscount(totalPhotos);
+
+        // Видаляємо старі деталі
         List<OrderDetail> existingDetails = orderDetailService.getOrderDetailsByOrderId(id);
         existingDetails.forEach(detail -> orderDetailService.deleteOrderDetail(detail.getId()));
 
+        // Додаємо нові деталі
+        BigDecimal totalCost = BigDecimal.ZERO;
+        boolean hasDiscountCard = discountCardService.getClientDiscount(order.getClient()).isPresent();
         for (OrderDetail detail : newOrderDetails) {
             detail.setOrder(order);
-            orderDetailService.createOrderDetail(detail);
+            OrderDetail savedDetail = orderDetailService.createOrderDetail(detail, volumeDiscount, hasDiscountCard);
+            totalCost = totalCost.add(savedDetail.getPrice());
         }
+
+        // Оновлюємо загальну вартість
+        if (order.isUrgent()) {
+            totalCost = totalCost.multiply(new BigDecimal("2"));
+        }
+        order.setTotalCost(totalCost);
 
         return orderRepository.save(order);
     }

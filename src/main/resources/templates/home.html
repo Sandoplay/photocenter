@@ -18,6 +18,9 @@
                 <li class="nav-item" sec:authorize="hasAnyRole('OWNER', 'ADMIN')">
                     <a class="nav-link" href="/admin">Адмін панель</a>
                 </li>
+                <li class="nav-item" sec:authorize="isAuthenticated()">
+                    <a class="nav-link" href="/discount-cards">Дисконтні карти</a>
+                </li>
             </ul>
             <div class="d-flex">
                 <div sec:authorize="isAuthenticated()">
@@ -128,7 +131,7 @@
     </div>
 </div>
 
-<!-- Додати перед закриттям body -->
+<!-- Модальне вікно для деталей замовлення -->
 <div class="modal fade" id="orderDetailsModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -145,8 +148,26 @@
                         <p><strong>Статус:</strong> <span id="orderStatus"></span></p>
                         <p><strong>Терміновість:</strong> <span id="orderUrgent"></span></p>
                     </div>
+                    <!-- Секція знижок -->
+                    <div class="col-md-6">
+                        <h6>Застосовані знижки</h6>
+                        <div id="discounts">
+                            <div id="volumeDiscount" style="display: none;">
+                                <p><strong>Знижка за кількість фотографій:</strong>
+                                    <span id="volumeDiscountValue"></span>
+                                </p>
+                                <p class="text-muted small">
+                                    Загальна кількість фотографій: <span id="totalPhotos"></span>
+                                </p>
+                            </div>
+                            <div id="cardDiscount" style="display: none;">
+                                <p><strong>Знижка по дисконтній картці:</strong> 10%</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <h6>Позиції замовлення</h6>
+
+                <!-- Таблиця деталей -->
                 <div class="table-responsive">
                     <table class="table">
                         <thead>
@@ -154,15 +175,14 @@
                             <th>Назва</th>
                             <th>Тип</th>
                             <th>Кількість</th>
-                            <th>Ціна</th>
+                            <th>Ціна без знижки</th>
+                            <th>Знижка</th>
+                            <th>Фінальна ціна</th>
                         </tr>
                         </thead>
                         <tbody id="orderItems">
                         </tbody>
                     </table>
-                </div>
-                <div class="text-end mt-3">
-                    <h5>Загальна сума: <span id="orderTotal"></span></h5>
                 </div>
             </div>
             <div class="modal-footer">
@@ -171,6 +191,7 @@
         </div>
     </div>
 </div>
+
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
 <script th:inline="javascript">
@@ -182,41 +203,55 @@
             .then(order => {
                 // Заповнюємо основну інформацію
                 document.getElementById('orderNumber').textContent = order.id;
-                document.getElementById('orderDate').textContent = new Date(order.orderDate).toLocaleString('uk-UA');
+                document.getElementById('orderDate').textContent =
+                    new Date(order.orderDate).toLocaleString('uk-UA');
                 document.getElementById('branchName').textContent = order.branchName;
-                document.getElementById('orderTotal').textContent = order.totalCost + '₴';
 
-                // Статус
-                const statusBadge = document.createElement('span');
-                statusBadge.className = 'badge ' +
-                    (order.status === 'NEW' ? 'bg-primary' :
-                        order.status === 'IN_PROGRESS' ? 'bg-warning text-dark' :
-                            order.status === 'COMPLETED' ? 'bg-success' :
-                                order.status === 'CANCELLED' ? 'bg-danger' : '');
-                statusBadge.textContent = order.status === 'NEW' ? 'Нове' :
-                    order.status === 'IN_PROGRESS' ? 'В обробці' :
-                        order.status === 'COMPLETED' ? 'Виконано' :
-                            order.status === 'CANCELLED' ? 'Скасовано' : order.status;
-                document.getElementById('orderStatus').innerHTML = '';
-                document.getElementById('orderStatus').appendChild(statusBadge);
+                // Розраховуємо кількість фотографій і знижку
+                const photoDetails = order.orderDetails.filter(d => d.serviceName);
+                const totalPhotos = photoDetails.reduce((sum, d) => sum + d.quantity, 0);
 
-                // Терміновість
-                document.getElementById('orderUrgent').textContent = order.urgent ? 'Термінове' : 'Звичайне';
+                // Відображення знижки за кількість
+                const volumeDiscountDiv = document.getElementById('volumeDiscount');
+                if (totalPhotos >= 10) {
+                    let discountPercent;
+                    if (totalPhotos >= 50) discountPercent = "20%";
+                    else if (totalPhotos >= 30) discountPercent = "15%";
+                    else if (totalPhotos >= 20) discountPercent = "10%";
+                    else discountPercent = "5%";
+
+                    document.getElementById('volumeDiscountValue').textContent = discountPercent;
+                    document.getElementById('totalPhotos').textContent = totalPhotos;
+                    volumeDiscountDiv.style.display = 'block';
+                } else {
+                    volumeDiscountDiv.style.display = 'none';
+                }
+
+                // Відображення знижки по картці
+                const cardDiscountDiv = document.getElementById('cardDiscount');
+                cardDiscountDiv.style.display = order.hasDiscountCard ? 'block' : 'none';
 
                 // Заповнюємо таблицю деталей
                 const tbody = document.getElementById('orderItems');
                 tbody.innerHTML = '';
+
                 order.orderDetails.forEach(detail => {
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `
+                    const originalPrice = detail.price / (1 - getDiscountPercent(detail, totalPhotos, order.hasDiscountCard));
+                    const discountAmount = originalPrice - detail.price;
+
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
                         <td>${detail.productName || detail.serviceName}</td>
                         <td>${detail.productName ? 'Товар' : 'Послуга'}</td>
                         <td>${detail.quantity}</td>
-                        <td>${detail.price}₴</td>
+                        <td>${originalPrice.toFixed(2)}₴</td>
+                        <td>${discountAmount.toFixed(2)}₴ (${getDiscountText(detail, totalPhotos, order.hasDiscountCard)})</td>
+                        <td>${detail.price.toFixed(2)}₴</td>
                     `;
-                    tbody.appendChild(tr);
+                    tbody.appendChild(row);
                 });
 
+                // Відкриваємо модальне вікно
                 orderDetailsModal.show();
             })
             .catch(error => {
@@ -224,6 +259,35 @@
                 alert('Помилка при завантаженні деталей замовлення');
             });
     }
+
+    function getDiscountPercent(detail, totalPhotos, hasDiscountCard) {
+        if (detail.serviceName) {
+            if (totalPhotos >= 50) return 0.20;
+            if (totalPhotos >= 30) return 0.15;
+            if (totalPhotos >= 20) return 0.10;
+            if (totalPhotos >= 10) return 0.05;
+            return 0;
+        } else if (detail.productName && hasDiscountCard) {
+            return 0.10;
+        }
+        return 0;
+    }
+
+    function getDiscountText(detail, totalPhotos, hasDiscountCard) {
+        if (detail.serviceName) {
+            if (totalPhotos >= 50) return "20% (знижка за кількість)";
+            if (totalPhotos >= 30) return "15% (знижка за кількість)";
+            if (totalPhotos >= 20) return "10% (знижка за кількість)";
+            if (totalPhotos >= 10) return "5% (знижка за кількість)";
+            return "без знижки";
+        } else if (detail.productName && hasDiscountCard) {
+            return "10% (дисконтна картка)";
+        }
+        return "без знижки";
+    }
+
+
+    // Функція видалення замовлення (як ми додавали раніше)
     function deleteOrder(orderId) {
         if (confirm('Ви впевнені, що хочете скасувати замовлення?')) {
             fetch(`/api/orders/${orderId}`, {
@@ -236,7 +300,6 @@
                     if (!response.ok) {
                         throw new Error('Failed to delete order');
                     }
-                    // Перезавантажуємо сторінку після успішного видалення
                     window.location.reload();
                 })
                 .catch(error => {
@@ -245,7 +308,7 @@
                 });
         }
     }
-
 </script>
+
 </body>
 </html>
