@@ -129,4 +129,15 @@ public class ClientService implements UserDetailsService {
         admin.setBranch(branch);
         clientRepository.save(admin);
     }
+
+    @Transactional
+    public void updatePassword(String username, String newPassword) {
+        Client client = clientRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("Client not found with username: " + username));
+
+        String encodedPassword = passwordEncoder.encode(newPassword);
+        client.setPassword(encodedPassword);
+        clientRepository.save(client);
+    }
+
 }

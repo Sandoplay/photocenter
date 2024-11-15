@@ -330,5 +330,52 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
             @Param("branchId") Long branchId
     );
 
+    @Query("""
+    SELECT NEW org.sandopla.photocenter.dto.ProductOrdersStatisticsDTO(
+        b.id,
+        b.name,
+        p.name,
+        SUM(CASE WHEN o.isUrgent = false THEN od.quantity ELSE 0 END),
+        SUM(CASE WHEN o.isUrgent = true THEN od.quantity ELSE 0 END),
+        SUM(od.quantity)
+    )
+    FROM Order o
+    JOIN o.branch b
+    JOIN o.orderDetails od
+    JOIN od.product p
+    WHERE o.orderDate BETWEEN :startDate AND :endDate
+    AND (:branchId IS NULL OR b.id = :branchId)
+    GROUP BY b.id, b.name, p.name
+    ORDER BY b.name, p.name
+    """)
+    List<ProductOrdersStatisticsDTO> getProductOrdersStatistics(
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate,
+            @Param("branchId") Long branchId
+    );
+
+    @Query("""
+    SELECT NEW org.sandopla.photocenter.dto.SalesRevenueDto(
+        b.name,
+        CAST(SUM(COALESCE(od.price * od.quantity, 0)) AS double),
+        CAST(SUM(COALESCE(sp.supplierPrice * od.quantity, 0)) AS double)
+    )
+    FROM Order o
+    JOIN o.branch b
+    LEFT JOIN o.orderDetails od
+    LEFT JOIN od.product p
+    LEFT JOIN SupplierProduct sp ON sp.product = p
+    WHERE (:branch IS NULL OR b = :branch)
+    AND o.status = 'COMPLETED'
+    AND o.orderDate BETWEEN :start AND :end
+    GROUP BY b.name
+""")
+    SalesRevenueDto calculateRevenueForPeriod(
+            @Param("branch") Branch branch,
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end
+    );
+
+
 }
 

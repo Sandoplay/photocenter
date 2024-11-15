@@ -37,6 +37,7 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(authz -> authz
+                        .requestMatchers("/", "/signup", "/forgot-password").permitAll() // Додано /forgot-password
                         .requestMatchers("/css/**", "/js/**", "/images/**",
                                 "/webjars/**", "/favicon.ico", "/static/**").permitAll()
                         .requestMatchers("/", "/home", "/auth/login",
@@ -47,7 +48,9 @@ public class SecurityConfig {
                         .requestMatchers("/admin/**").hasAnyRole("OWNER", "ADMIN")
                         .requestMatchers("/create-order").authenticated()  // Додано цей рядок
                         .anyRequest().authenticated()
+
                 )
+
                 .formLogin(form -> form
                         .loginPage("/auth/login")
                         .loginProcessingUrl("/auth/login-process")

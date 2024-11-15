@@ -110,11 +110,11 @@
                         Клієнти
                     </button>
                 </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="order-stats-general-tab" data-bs-toggle="tab" data-bs-target="#orders-stats-general" type="button">
-                        Загальне число замовлень
-                    </button>
-                </li>
+<!--                <li class="nav-item" role="presentation">-->
+<!--                    <button class="nav-link" id="order-stats-general-tab" data-bs-toggle="tab" data-bs-target="#orders-stats-general" type="button">-->
+<!--                        Загальне число замовлень-->
+<!--                    </button>-->
+<!--                </li>-->
                 <li class="nav-item" role="presentation">
                     <button class="nav-link" id="unclaimed-orders-tab" data-bs-toggle="tab"
                             data-bs-target="#unclaimed-orders" type="button">
@@ -395,6 +395,22 @@
                 </div>
 
 
+                <div class="tab-pane fade" id="products-stats">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                            <tr>
+                                <th>Філія</th>
+                                <th>Товар</th>
+                                <th>Звичайні замовлення</th>
+                                <th>Термінові замовлення</th>
+                                <th>Всього замовлень</th>
+                            </tr>
+                            </thead>
+                            <tbody id="productOrdersStatsBody"></tbody>
+                        </table>
+                    </div>
+                </div>
 
                 <!-- Інші вкладки... -->
             </div>
@@ -482,6 +498,9 @@
                 break;
             case 'popular-products-tab':
                 loadPopularProducts();
+                break;
+            case 'products-stats-tab':
+                loadProductOrdersStatistics();
                 break;
 
             // Додайте інші кейси для інших вкладок
@@ -1046,8 +1065,73 @@
     document.getElementById('endDate').addEventListener('change', loadPopularProducts);
 
 
+    function loadProductOrdersStatistics() {
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        const branchId = document.getElementById('branchSelect').value;
 
+        const params = new URLSearchParams({
+            startDate: startDate,
+            endDate: endDate
+        });
+        if (branchId) params.append('branchId', branchId);
 
+        fetch(`/admin/global-statistics/api/product-orders?${params}`)
+            .then(response => response.json())
+            .then(statistics => {
+                const tbody = document.getElementById('productOrdersStatsBody');
+                tbody.innerHTML = '';
+
+                // Сортуємо статистику за спаданням значення "Всього замовлень"
+                statistics.sort((a, b) => a.totalOrdersCount - b.totalOrdersCount);
+
+                let currentBranch = null;
+                statistics.forEach(stat => {
+                    const row = document.createElement('tr');
+
+                    // Якщо це новий філіал, показуємо його назву
+                    if (currentBranch !== stat.branchName) {
+                        row.innerHTML = `
+                        <td>${stat.branchName}</td>
+                        <td>${stat.productName}</td>
+                        <td>${stat.regularOrdersCount}</td>
+                        <td>${stat.urgentOrdersCount}</td>
+                        <td>${stat.totalOrdersCount}</td>
+                    `;
+                        currentBranch = stat.branchName;
+                    } else {
+                        // Якщо філіал той самий, показуємо порожню ячейку замість назви
+                        row.innerHTML = `
+                        <td></td>
+                        <td>${stat.productName}</td>
+                        <td>${stat.regularOrdersCount}</td>
+                        <td>${stat.urgentOrdersCount}</td>
+                        <td>${stat.totalOrdersCount}</td>
+                    `;
+                    }
+
+                    tbody.appendChild(row);
+                });
+            })
+            .catch(error => {
+                console.error('Error loading product orders statistics:', error);
+                alert('Помилка при завантаженні статистики замовлень товарів');
+            });
+    }
+
+    document.getElementById('startDate').addEventListener('change', () => {
+        const activeTab = document.querySelector('.nav-link.active');
+        if (activeTab.id === 'products-stats-tab') {
+            loadProductOrdersStatistics();
+        }
+    });
+
+    document.getElementById('endDate').addEventListener('change', () => {
+        const activeTab = document.querySelector('.nav-link.active');
+        if (activeTab.id === 'products-stats-tab') {
+            loadProductOrdersStatistics();
+        }
+    });
 
 
 
@@ -1086,6 +1170,9 @@
                 break;
             case 'suppliers-stats-tab':
                 loadSupplierStatistics();
+                break;
+            case 'products-stats-tab':
+                loadProductOrdersStatistics();
                 break;
         }
     });

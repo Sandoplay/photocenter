@@ -110,6 +110,7 @@
             <!-- Статистика -->
             <div class="row">
                 <!-- Для OWNER -->
+                <!-- Для OWNER -->
                 <th:block sec:authorize="hasRole('OWNER')">
                     <div class="col-md-3 mb-4">
                         <div class="card bg-primary text-white">
@@ -122,8 +123,14 @@
                     <div class="col-md-3 mb-4">
                         <div class="card bg-success text-white">
                             <div class="card-body">
-                                <h5 class="card-title">Загальна виручка</h5>
-                                <h2 class="card-text" th:text="${totalRevenue} + '₴'">0₴</h2>
+                                <h5 class="card-title">Фінансові показники</h5>
+                                <div class="small">Виручка</div>
+                                <div class="h4" th:text="${revenueData?.totalRevenue} + '₴'">0₴</div>
+                                <div class="small">Собівартість</div>
+                                <div class="h4" th:text="${revenueData?.totalCost} + '₴'">0₴</div>
+                                <div class="small">Чистий прибуток</div>
+                                <div class="h4" th:classappend="${revenueData?.profit?.compareTo(T(java.math.BigDecimal).ZERO) >= 0 ? 'text-light' : 'text-danger'}"
+                                     th:text="${revenueData?.profit} + '₴'">0₴</div>
                             </div>
                         </div>
                     </div>
@@ -142,8 +149,14 @@
                     <div class="col-md-3 mb-4">
                         <div class="card bg-warning text-dark">
                             <div class="card-body">
-                                <h5 class="card-title">Виручка філії</h5>
-                                <h2 class="card-text" th:text="${branchRevenue} + '₴'">0₴</h2>
+                                <h5 class="card-title">Фінансові показники філії</h5>
+                                <div class="small">Виручка</div>
+                                <div class="h4" th:text="${revenueData?.totalRevenue} + '₴'">0₴</div>
+                                <div class="small">Собівартість</div>
+                                <div class="h4" th:text="${revenueData?.totalCost} + '₴'">0₴</div>
+                                <div class="small">Чистий прибуток</div>
+                                <div class="h4" th:classappend="${revenueData?.profit?.compareTo(T(java.math.BigDecimal).ZERO) >= 0 ? 'text-dark' : 'text-danger'}"
+                                     th:text="${revenueData?.profit} + '₴'">0₴</div>
                             </div>
                         </div>
                     </div>

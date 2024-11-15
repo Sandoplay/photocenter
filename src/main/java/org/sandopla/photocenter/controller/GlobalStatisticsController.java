@@ -1,5 +1,6 @@
 package org.sandopla.photocenter.controller;
 
+import org.sandopla.photocenter.dto.ProductOrdersStatisticsDTO;
 import org.sandopla.photocenter.dto.UnclaimedOrderDTO;
 import org.sandopla.photocenter.service.BranchService;
 import org.sandopla.photocenter.service.StatisticsService;
@@ -64,4 +65,15 @@ public class GlobalStatisticsController {
     }
 
 
+    @GetMapping("/api/product-orders")
+    public ResponseEntity<List<ProductOrdersStatisticsDTO>> getProductOrdersStatistics(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
+            @RequestParam(required = false) Long branchId) {
+
+        List<ProductOrdersStatisticsDTO> statistics =
+                statisticsService.getProductOrdersStatistics(startDate, endDate, branchId);
+
+        return ResponseEntity.ok(statistics);
+    }
 }

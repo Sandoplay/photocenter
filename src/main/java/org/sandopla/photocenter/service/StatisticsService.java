@@ -67,5 +67,12 @@ public class StatisticsService {
         return orderRepository.getServiceRevenue(startDate, endDate, branchId);
     }
 
+    public List<ProductOrdersStatisticsDTO> getProductOrdersStatistics(
+            LocalDateTime startDate,
+            LocalDateTime endDate,
+            Long branchId) {
+        return orderRepository.getProductOrdersStatistics(startDate, endDate, branchId);
+    }
+
 
 }

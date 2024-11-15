@@ -123,8 +123,10 @@
                     </tr>
                     </thead>
                     <tbody>
-                    <tr th:each="order : ${orders}">
-                        <td>
+                    <tr th:each="order : ${orders}" th:data-order-id="${order.id}">
+
+
+                    <td>
                             <span th:text="${order.id}"></span>
                             <span th:if="${order.isUrgent}" class="badge bg-danger ms-1" title="Термінове">
             <i class="fas fa-bolt"></i>
@@ -225,49 +227,7 @@
         window.orderDetailsModal = orderDetailsModal;
     });
 
-    function startProcessing(orderId) {
-        if (confirm('Почати обробку замовлення?')) {
-            updateOrderStatus(orderId, 'IN_PROGRESS');
-        }
-    }
 
-    function completeOrder(orderId) {
-        if (confirm('Позначити замовлення як виконане?')) {
-            updateOrderStatus(orderId, 'COMPLETED');
-        }
-    }
-
-    function cancelOrder(orderId) {
-        if (confirm('Ви впевнені, що хочете скасувати це замовлення?')) {
-            updateOrderStatus(orderId, 'CANCELLED');
-        }
-    }
-
-    // Оновлюємо функцію оновлення статусу, щоб показувати більш детальні повідомлення про помилки
-    function updateOrderStatus(orderId, status) {
-        fetch(`/api/orders/${orderId}/status`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ status: status })
-        })
-            .then(response => {
-                if (!response.ok) {
-                    return response.text().then(text => {
-                        throw new Error(text || 'Помилка при оновленні статусу замовлення');
-                    });
-                }
-                return response.json();
-            })
-            .then(() => {
-                window.location.reload();
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert(error.message);
-            });
-    }
 
     // Оновлюємо функцію відображення деталей, щоб показувати повідомлення про помилки
     function viewOrderDetails(orderId) {
@@ -363,6 +323,116 @@
             timeout = setTimeout(later, wait);
         };
     }
+
+
+    function updateOrderStatus(orderId, status) {
+        if (!confirm(getConfirmationMessage(status))) {
+            return;
+        }
+
+        fetch(`/api/orders/${orderId}/status`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ status: status })
+        })
+            .then(response => {
+                if (!response.ok) {
+                    return response.text().then(text => {
+                        throw new Error(text || 'Помилка при оновленні статусу замовлення');
+                    });
+                }
+                return response.json();
+            })
+            .then(() => {
+                const row = document.querySelector(`tr[data-order-id="${orderId}"]`);
+                if (row) {
+                    // Оновлюємо тільки статус та кнопки в рядку
+                    updateTableRow(row, status);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert(error.message);
+            });
+    }
+
+    function getConfirmationMessage(status) {
+        switch(status) {
+            case 'IN_PROGRESS': return 'Почати обробку замовлення?';
+            case 'COMPLETED': return 'Позначити замовлення як виконане?';
+            case 'CANCELLED': return 'Ви впевнені, що хочете скасувати це замовлення?';
+            default: return 'Змінити статус замовлення?';
+        }
+    }
+
+    function updateTableRow(row, newStatus) {
+        // Оновлюємо клас та текст статусу
+        const statusCell = row.querySelector('td:nth-child(5)');
+        const statusBadge = statusCell.querySelector('.status-badge');
+        statusBadge.className = `status-badge status-${newStatus}`;
+        statusBadge.textContent = newStatus;
+
+        // Оновлюємо кнопки дій
+        const actionsCell = row.querySelector('td:last-child');
+        const btnGroup = actionsCell.querySelector('.btn-group');
+        updateActionButtons(btnGroup, newStatus, row.dataset.orderId);
+    }
+
+    function updateActionButtons(container, status, orderId) {
+        // Очищуємо контейнер, залишаючи тільки кнопку перегляду
+        container.innerHTML = `
+        <button class="btn btn-sm btn-outline-primary"
+                onclick="viewOrderDetails(${orderId})"
+                title="Деталі">
+            <i class="fas fa-eye"></i>
+        </button>
+    `;
+
+        // Додаємо відповідні кнопки залежно від статусу
+        if (status === 'NEW') {
+            container.innerHTML += `
+            <button class="btn btn-sm btn-outline-warning"
+                    onclick="startProcessing(${orderId})"
+                    title="Почати обробку">
+                <i class="fas fa-play"></i>
+            </button>
+            <button class="btn btn-sm btn-outline-danger"
+                    onclick="cancelOrder(${orderId})"
+                    title="Скасувати">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
+        } else if (status === 'IN_PROGRESS') {
+            container.innerHTML += `
+            <button class="btn btn-sm btn-outline-success"
+                    onclick="completeOrder(${orderId})"
+                    title="Завершити">
+                <i class="fas fa-check"></i>
+            </button>
+            <button class="btn btn-sm btn-outline-danger"
+                    onclick="cancelOrder(${orderId})"
+                    title="Скасувати">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
+        }
+    }
+
+    // Спрощуємо допоміжні функції
+    function startProcessing(orderId) {
+        updateOrderStatus(orderId, 'IN_PROGRESS');
+    }
+
+    function completeOrder(orderId) {
+        updateOrderStatus(orderId, 'COMPLETED');
+    }
+
+    function cancelOrder(orderId) {
+        updateOrderStatus(orderId, 'CANCELLED');
+    }
+
 </script>
 </body>
 </html>

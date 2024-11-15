@@ -40,12 +40,12 @@ public class AdminWebController {
 
         if (client.getRole() == Role.OWNER) {
             model.addAttribute("branchesCount", branchService.getBranchesCount());
-            model.addAttribute("totalRevenue", orderService.getTotalRevenue());
+            model.addAttribute("revenueData", orderService.getTotalRevenue()); // змінюємо атрибут
             model.addAttribute("branches", branchService.getAllBranches());
         } else {
             Branch adminBranch = client.getBranch();
             model.addAttribute("todayOrders", orderService.getTodayOrdersCount(adminBranch));
-            model.addAttribute("branchRevenue", orderService.getBranchRevenue(adminBranch));
+            model.addAttribute("revenueData", orderService.getBranchRevenue(adminBranch)); // змінюємо атрибут
             model.addAttribute("kiosks", branchService.getKiosksForBranch(adminBranch.getId()));
         }
 

@@ -28,6 +28,9 @@ public class OrderResponse {
     private boolean isUrgent;
     private BigDecimal totalCost;
     private List<OrderDetailResponse> orderDetails;
+    private boolean pickedUp;
+    private LocalDateTime pickupDate;
+
 
     public boolean getHasDiscountCard() {
         return this.orderDetails.stream()
@@ -84,6 +87,9 @@ public class OrderResponse {
         response.setStatus(order.getStatus().name());
         response.setUrgent(order.isUrgent());
         response.setTotalCost(order.getTotalCost());
+        response.setPickedUp(order.isPickedUp());
+        response.setPickupDate(order.getPickupDate());
+
 
         response.setOrderDetails(order.getOrderDetails().stream()
                 .map(OrderDetailResponse::fromOrderDetail)
