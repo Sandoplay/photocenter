@@ -20,4 +20,6 @@ public interface DiscountCardRepository extends JpaRepository<DiscountCard, Long
     boolean existsByCardNumber(String cardNumber);
     List<DiscountCard> findByClient(Client client);
 
+    @Query("SELECT dc FROM DiscountCard dc WHERE dc.client.id = :clientId AND dc.active = true AND (dc.expiryDate IS NULL OR dc.expiryDate > CURRENT_DATE)")
+    List<DiscountCard> findActiveCardsByClientId(@Param("clientId") Long clientId);
 }

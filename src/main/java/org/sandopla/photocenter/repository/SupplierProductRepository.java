@@ -15,4 +15,6 @@ public interface SupplierProductRepository extends JpaRepository<SupplierProduct
     List<SupplierProduct> findByProduct(Product product);
     Optional<SupplierProduct> findBySupplierAndProduct(Supplier supplier, Product product);
     List<SupplierProduct> findBySupplierAndActive(Supplier supplier, boolean active);
+    Optional<SupplierProduct> findFirstByProductIdAndActiveTrue(Long productId);
+
 }

@@ -36,8 +36,9 @@ public class SupplierProductController {
     @PostMapping("/add")
     public String addProduct(@PathVariable Long supplierId,
                              @RequestParam Long productId,
-                             @RequestParam BigDecimal supplierPrice) {
-        supplierProductService.addProductToSupplier(supplierId, productId, supplierPrice);
+                             @RequestParam BigDecimal supplierPrice,
+                             @RequestParam Integer quantity) {
+        supplierProductService.addProductToSupplier(supplierId, productId, supplierPrice, quantity);
         return "redirect:/admin/suppliers/" + supplierId + "/products";
     }
 

@@ -28,4 +28,7 @@ public class SupplierProduct {
     private boolean active = true;
 
     private String notes;  // Примітки щодо поставки цього продукту
+
+    @Column(nullable = false)
+    private Integer quantity;
 }

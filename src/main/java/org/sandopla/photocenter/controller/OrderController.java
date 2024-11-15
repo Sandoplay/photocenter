@@ -1,6 +1,7 @@
 package org.sandopla.photocenter.controller;
 
 import org.sandopla.photocenter.dto.OrderResponse;
+import org.sandopla.photocenter.dto.UnclaimedOrderDTO;
 import org.sandopla.photocenter.model.*;
 import org.sandopla.photocenter.service.BranchService;
 import org.sandopla.photocenter.service.OrderService;
@@ -11,6 +12,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.nio.file.AccessDeniedException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -213,6 +215,36 @@ public class OrderController {
         }
     }
 
+
+    @GetMapping("/unclaimed")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
+    public ResponseEntity<List<UnclaimedOrderDTO>> getUnclaimedOrders(
+            @RequestParam(required = false) Long branchId,
+            Authentication authentication) {
+
+        Client client = (Client) authentication.getPrincipal();
+
+        // Якщо це не власник і вказана не його філія
+        if (client.getRole() != Role.OWNER &&
+                (branchId != null && !client.getBranch().getId().equals(branchId))) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        return ResponseEntity.ok(orderService.getUnclaimedOrders(branchId));
+    }
+
+    @PostMapping("/{id}/pickup")
+    public ResponseEntity<OrderResponse> pickupOrder(
+            @PathVariable Long id,
+            Authentication authentication) {
+        try {
+            Client client = (Client) authentication.getPrincipal();
+            Order order = orderService.pickupOrder(id, client.getUsername());
+            return ResponseEntity.ok(OrderResponse.fromOrder(order));
+        } catch (IllegalStateException | AccessDeniedException e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
 
 }
 

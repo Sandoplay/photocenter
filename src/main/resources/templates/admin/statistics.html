@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>Статистика друку фотографій - Фотоцентр</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+<!-- Navigation header -->
+
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header">
+            <h3>Статистика друку фотографій</h3>
+        </div>
+        <div class="card-body">
+            <!-- Фільтри -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <label for="startDate" class="form-label">Початкова дата</label>
+                    <input type="datetime-local" class="form-control" id="startDate">
+                </div>
+                <div class="col-md-3">
+                    <label for="endDate" class="form-label">Кінцева дата</label>
+                    <input type="datetime-local" class="form-control" id="endDate">
+                </div>
+                <div class="col-md-3">
+                    <label for="branchSelect" class="form-label">Філія</label>
+                    <select class="form-select" id="branchSelect">
+                        <option value="">Всі філії</option>
+                        <!-- Опції будуть додані через JavaScript -->
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button class="btn btn-primary w-100" onclick="loadStatistics()">
+                        Показати статистику
+                    </button>
+                </div>
+            </div>
+
+            <!-- Таблиця статистики -->
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                    <tr>
+                        <th>Філія</th>
+                        <th>Звичайні фото</th>
+                        <th>Термінові фото</th>
+                        <th>Фото в рамках</th>
+                        <th>Всього фото</th>
+                    </tr>
+                    </thead>
+                    <tbody id="statisticsBody">
+                    <!-- Дані будуть додані через JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const today = new Date();
+
+        const startOfDay = new Date(today);
+        startOfDay.setHours(0, 0, 0, 0);
+
+        const endOfDay = new Date(today);
+        endOfDay.setHours(23, 59, 59, 999);
+
+        document.getElementById('startDate').value = formatDate(startOfDay);
+        document.getElementById('endDate').value = formatDate(endOfDay);
+
+        loadStatistics();
+    });
+
+    function formatDate(date) {
+        const offset = date.getTimezoneOffset();
+        const adjustedDate = new Date(date.getTime() - (offset * 60 * 1000));
+        return adjustedDate.toISOString().slice(0,16);
+    }
+
+
+
+    function loadBranches() {
+        fetch('/api/branches')
+            .then(response => response.json())
+            .then(branches => {
+                const select = document.getElementById('branchSelect');
+                branches.forEach(branch => {
+                    const option = document.createElement('option');
+                    option.value = branch.id;
+                    option.textContent = branch.name;
+                    select.appendChild(option);
+                });
+            });
+    }
+
+    function loadStatistics() {
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        const branchId = document.getElementById('branchSelect').value;
+
+        if (!startDate || !endDate) {
+            alert('Будь ласка, виберіть дати');
+            return;
+        }
+
+        const params = new URLSearchParams({
+            startDate: startDate,
+            endDate: endDate
+        });
+        if (branchId) {
+            params.append('branchId', branchId);
+        }
+
+        fetch(`/api/statistics/photos?${params}`)
+            .then(response => response.json())
+            .then(statistics => {
+                const tbody = document.getElementById('statisticsBody');
+                tbody.innerHTML = '';
+
+                statistics.forEach(stat => {
+                    const totalPhotos = stat.regularPhotosCount + stat.urgentPhotosCount + stat.photosWithFramesCount;
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                    <td>${stat.branchName}</td>
+                    <td>${stat.regularPhotosCount}</td>
+                    <td>${stat.urgentPhotosCount}</td>
+                    <td>${stat.photosWithFramesCount}</td>
+                    <td>${totalPhotos}</td>
+                `;
+                    tbody.appendChild(row);
+                });
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Помилка при завантаженні статистики');
+            });
+    }
+
+    // Завантажуємо список філій при завантаженні сторінки
+    document.addEventListener('DOMContentLoaded', loadBranches);
+</script>
+</body>
+</html>

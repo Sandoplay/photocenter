@@ -2,6 +2,7 @@ package org.sandopla.photocenter.service;
 
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.persistence.criteria.Subquery;
+import org.sandopla.photocenter.dto.UnclaimedOrderDTO;
 import org.sandopla.photocenter.model.*;
 import org.sandopla.photocenter.repository.DiscountCardRepository;
 import org.sandopla.photocenter.repository.OrderRepository;
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.nio.file.AccessDeniedException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -370,5 +372,34 @@ public class OrderService {
         }
 
         return spec;
+    }
+
+    public List<UnclaimedOrderDTO> getUnclaimedOrders(Long branchId) {
+        return orderRepository.findUnclaimedOrders(branchId);
+    }
+
+    @Transactional
+    public Order pickupOrder(Long orderId, String clientUsername) throws AccessDeniedException {
+        Order order = getOrderById(orderId);
+
+        // Перевіряємо чи замовлення належить клієнту
+        if (!order.getClient().getUsername().equals(clientUsername)) {
+            throw new AccessDeniedException("You don't have permission to pickup this order");
+        }
+
+        // Перевіряємо чи замовлення завершене
+        if (order.getStatus() != Order.OrderStatus.COMPLETED) {
+            throw new IllegalStateException("Order is not ready for pickup");
+        }
+
+        // Перевіряємо чи замовлення ще не забране
+        if (order.isPickedUp()) {
+            throw new IllegalStateException("Order is already picked up");
+        }
+
+        order.setPickedUp(true);
+        order.setPickupDate(LocalDateTime.now());
+
+        return orderRepository.save(order);
     }
 }

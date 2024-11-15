@@ -45,4 +45,6 @@ public class Supplier {
 
     @Column(name = "notes")
     private String notes; // Додаткові примітки
+
+    
 }

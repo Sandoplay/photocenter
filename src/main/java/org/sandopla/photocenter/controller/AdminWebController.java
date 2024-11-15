@@ -33,6 +33,7 @@ public class AdminWebController {
         this.clientService = clientService;
     }
 
+
     @GetMapping
     public String adminHome(Model model, Authentication authentication) {
         Client client = (Client) authentication.getPrincipal();

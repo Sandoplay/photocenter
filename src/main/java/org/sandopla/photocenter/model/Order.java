@@ -55,4 +55,10 @@ public class Order {
     public enum OrderStatus {
         NEW, IN_PROGRESS, COMPLETED, CANCELLED
     }
+
+    @Column(name = "picked_up")
+    private boolean pickedUp = false;
+
+    @Column(name = "pickup_date")
+    private LocalDateTime pickupDate;
 }

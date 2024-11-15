@@ -1,5 +1,6 @@
 package org.sandopla.photocenter.service;
 
+import org.sandopla.photocenter.dto.SupplierStatisticsDTO;
 import org.sandopla.photocenter.model.ProductCategory;
 import org.sandopla.photocenter.model.Supplier;
 import org.sandopla.photocenter.repository.SupplierRepository;
@@ -9,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class SupplierService {
@@ -83,5 +85,18 @@ public class SupplierService {
     public boolean hasDeliveries(Long id) {
         // TODO: Реалізувати перевірку наявності поставок
         return false;
+    }
+
+    public List<SupplierStatisticsDTO> getSuppliersByCriteria(String category, Long minDeliveries) {
+        List<Object[]> results = supplierRepository.findSuppliersByCriteria(category, minDeliveries);
+
+        return results.stream()
+                .map(row -> new SupplierStatisticsDTO(
+                        (Long) row[0],
+                        (String) row[1],
+                        (String) row[2],
+                        (Long) row[3],
+                        (Long) row[4]))
+                .collect(Collectors.toList());
     }
 }

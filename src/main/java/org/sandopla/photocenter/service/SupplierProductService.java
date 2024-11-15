@@ -1,6 +1,8 @@
 package org.sandopla.photocenter.service;
 
+import org.sandopla.photocenter.dto.SupplierStatisticsDTO;
 import org.sandopla.photocenter.model.Product;
+import org.sandopla.photocenter.model.ProductCategory;
 import org.sandopla.photocenter.model.Supplier;
 import org.sandopla.photocenter.model.SupplierProduct;
 import org.sandopla.photocenter.repository.ProductRepository;
@@ -36,7 +38,7 @@ public class SupplierProductService {
         return supplierProductRepository.findBySupplier(supplier);
     }
 
-    public SupplierProduct addProductToSupplier(Long supplierId, Long productId, BigDecimal supplierPrice) {
+    public SupplierProduct addProductToSupplier(Long supplierId, Long productId, BigDecimal supplierPrice, Integer quantity) {
         Supplier supplier = supplierRepository.findById(supplierId)
                 .orElseThrow(() -> new RuntimeException("Supplier not found"));
         Product product = productRepository.findById(productId)
@@ -51,9 +53,12 @@ public class SupplierProductService {
         supplierProduct.setSupplier(supplier);
         supplierProduct.setProduct(product);
         supplierProduct.setSupplierPrice(supplierPrice);
+        supplierProduct.setQuantity(quantity);
 
         return supplierProductRepository.save(supplierProduct);
     }
+
+
 
     public void updateSupplierPrice(Long supplierProductId, BigDecimal newPrice) {
         SupplierProduct supplierProduct = supplierProductRepository.findById(supplierProductId)

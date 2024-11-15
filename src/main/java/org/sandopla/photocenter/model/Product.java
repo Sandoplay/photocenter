@@ -3,6 +3,8 @@ package org.sandopla.photocenter.model;
 import jakarta.persistence.*;
 import lombok.Data;
 import java.math.BigDecimal;
+import java.util.HashSet;
+import java.util.Set;
 
 @Data
 @Entity
@@ -25,4 +27,8 @@ public class Product {
 
     @Column(name = "stock_quantity", nullable = false)
     private Integer stockQuantity;
+
+    @OneToMany(mappedBy = "product")
+    private Set<SupplierProduct> supplierProducts = new HashSet<>();
+
 }

@@ -1,5 +1,6 @@
 package org.sandopla.photocenter.controller;
 
+import org.sandopla.photocenter.dto.SupplierStatisticsDTO;
 import org.sandopla.photocenter.model.Supplier;
 import org.sandopla.photocenter.service.SupplierService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,4 +48,14 @@ public class SupplierController {
         supplierService.deleteSupplier(id);
         return ResponseEntity.ok().build();
     }
+
+    @GetMapping("/stats")
+    @ResponseBody
+    public ResponseEntity<List<SupplierStatisticsDTO>> getSupplierStatistics(
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) Long minDeliveries) {
+        List<SupplierStatisticsDTO> statistics = supplierService.getSuppliersByCriteria(category, minDeliveries);
+        return ResponseEntity.ok(statistics);
+    }
+
 }

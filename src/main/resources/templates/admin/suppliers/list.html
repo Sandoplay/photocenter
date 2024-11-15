@@ -169,6 +169,10 @@
                                         th:data-id="${supplier.id}">
                                     <i class="fas fa-ban"></i>
                                 </button>
+                                <a class="btn btn-sm btn-outline-success"
+                                   th:href="@{/admin/suppliers/{id}/products(id=${supplier.id})}">
+                                    <i class="fas fa-plus"></i> Додати продукти
+                                </a>
                             </div>
                         </td>
                     </tr>

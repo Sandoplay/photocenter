@@ -1,0 +1,1097 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>Глобальна статистика - Фотоцентр</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
+        <a class="navbar-brand" href="/">Фотоцентр</a>
+        <div class="collapse navbar-collapse">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="/home">Головна</a>
+                </li>
+            </ul>
+            <div class="d-flex align-items-center">
+                <span class="text-light me-3" sec:authentication="name"></span>
+                <form th:action="@{/auth/logout}" method="post" class="d-inline">
+                    <button type="submit" class="btn btn-outline-light btn-sm">Вийти</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="container-fluid">
+    <div class="row">
+        <!-- Сайдбар -->
+        <nav class="col-md-2 d-none d-md-block bg-dark sidebar min-vh-100">
+            <div class="position-sticky">
+                <div class="p-3 text-white">
+                    <h5>Адмін панель</h5>
+                    <p class="small" th:text="${#authentication.principal.name}"></p>
+                </div>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="/admin">
+                            <i class="fas fa-home me-2"></i>
+                            Головна
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="/admin/branches">
+                            <i class="fas fa-store me-2"></i>
+                            Філії
+                        </a>
+                    </li>
+
+                    <!-- Інші пункти меню -->
+                </ul>
+            </div>
+        </nav>
+
+        <!-- Основний контент -->
+        <main class="col-md-10 ms-sm-auto px-4">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1>Глобальна статистика</h1>
+            </div>
+
+            <!-- Фільтри дат -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <label for="startDate" class="form-label">Початкова дата</label>
+                    <input type="datetime-local" class="form-control" id="startDate">
+                </div>
+                <div class="col-md-3">
+                    <label for="endDate" class="form-label">Кінцева дата</label>
+                    <input type="datetime-local" class="form-control" id="endDate">
+                </div>
+                <div class="col-md-3">
+                    <label for="branchSelect" class="form-label">Філія</label>
+                    <select class="form-select" id="branchSelect">
+                        <option value="">Всі філії</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Вкладки статистики -->
+            <ul class="nav nav-tabs" id="statisticsTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="photo-stats-tab" data-bs-toggle="tab" data-bs-target="#photo-stats" type="button">
+                        Статистика друку фотографій
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="orders-stats-tab" data-bs-toggle="tab" data-bs-target="#orders-stats" type="button">
+                        Замовлення
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="revenue-stats-tab" data-bs-toggle="tab" data-bs-target="#revenue-stats" type="button">
+                        Виручка
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="suppliers-stats-tab" data-bs-toggle="tab" data-bs-target="#suppliers-stats" type="button">
+                        Постачальники
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="products-stats-tab" data-bs-toggle="tab" data-bs-target="#products-stats" type="button">
+                        Товари
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="clients-stats-tab" data-bs-toggle="tab" data-bs-target="#clients-stats" type="button">
+                        Клієнти
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="order-stats-general-tab" data-bs-toggle="tab" data-bs-target="#orders-stats-general" type="button">
+                        Загальне число замовлень
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="unclaimed-orders-tab" data-bs-toggle="tab"
+                            data-bs-target="#unclaimed-orders" type="button">
+                        Незабрані замовлення
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="product-sales-tab"
+                            data-bs-toggle="tab"
+                            data-bs-target="#product-sales"
+                            type="button">
+                        Продажі товарів
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="service-revenue-tab" data-bs-toggle="tab" data-bs-target="#service-revenue" type="button">
+                        Виручка з послуг
+                    </button>
+                </li>
+
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="popular-products-tab"
+                            data-bs-toggle="tab"
+                            data-bs-target="#popular-products"
+                            type="button">
+                        Популярні товари
+                    </button>
+                </li>
+
+
+            </ul>
+
+            <!-- Вміст вкладок -->
+            <div class="tab-content mt-3" id="statisticsContent">
+                <!-- Статистика друку фотографій -->
+                <div class="tab-pane fade show active" id="photo-stats">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                            <tr>
+                                <th>Філія</th>
+                                <th>Звичайні фото</th>
+                                <th>Термінові фото</th>
+                                <th>Фото в рамках</th>
+                                <th>Всього фото</th>
+                            </tr>
+                            </thead>
+                            <tbody id="photoStatsBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Статистика замовлень -->
+                <div class="tab-pane fade" id="orders-stats">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                            <tr>
+                                <th>Філія</th>
+                                <th>Послуга</th>
+                                <th>Звичайні замовлення</th>
+                                <th>Термінові замовлення</th>
+                                <th>Всього замовлень</th>
+                            </tr>
+                            </thead>
+                            <tbody id="photoServicesStatsBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="tab-pane fade" id="service-revenue">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                            <tr>
+                                <th>Філія</th>
+                                <th>Послуга</th>
+                                <th>Виручка (звичайні)</th>
+                                <th>Виручка (термінові)</th>
+                                <th>Загальна виручка</th>
+                            </tr>
+                            </thead>
+                            <tbody id="serviceRevenueBody"></tbody>
+                            <tfoot>
+                            <tr class="table-info">
+                                <td colspan="2"><strong>Всього:</strong></td>
+                                <td id="totalRegularRevenue"><strong>0.00₴</strong></td>
+                                <td id="totalUrgentRevenue"><strong>0.00₴</strong></td>
+                                <td id="totalServiceRevenue"><strong>0.00₴</strong></td>
+                            </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="tab-pane fade" id="orders-stats-general">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                            <tr>
+                                <th>Філія</th>
+                                <th>Тип</th>
+                                <th>Головна філія</th>
+                                <th>Кількість замовлень</th>
+                            </tr>
+                            </thead>
+                            <tbody id="ordersStatsBody"></tbody>
+                            <tfoot>
+                            <tr class="table-info">
+                                <td colspan="3"><strong>Всього по фотоцентру:</strong></td>
+                                <td id="totalOrdersCount"><strong>0</strong></td>
+                            </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Статистика виручки -->
+                <div class="tab-pane fade" id="revenue-stats">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                            <tr>
+                                <th>Філія</th>
+                                <th>Загальна виручка</th>
+                                <th>Собівартість</th>
+                                <th>Чистий прибуток</th>
+                            </tr>
+                            </thead>
+                            <tbody id="revenueStatsBody"></tbody>
+                            <tfoot>
+                            <tr class="table-info">
+                                <td><strong>Всього:</strong></td>
+                                <td id="totalRevenueStat"><strong>0.00₴</strong></td>
+                                <td id="totalCostStat"><strong>0.00₴</strong></td>
+                                <td id="totalProfitStat"><strong>0.00₴</strong></td>
+                            </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="tab-pane fade" id="clients-stats">
+                    <!-- Додаткові фільтри для статистики клієнтів -->
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <label for="minOrderAmount" class="form-label">Мінімальна сума замовлень</label>
+                            <input type="number" class="form-control" id="minOrderAmount" value="1000" step="100">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="hasDiscount" class="form-label">Наявність знижки</label>
+                            <select class="form-select" id="hasDiscount">
+                                <option value="">Всі клієнти</option>
+                                <option value="true">Зі знижкою</option>
+                                <option value="false">Без знижки</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Таблиця статистики клієнтів -->
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                            <tr>
+                                <th>Філія</th>
+                                <th>Клієнт</th>
+                                <th>Телефон</th>
+                                <th>Email</th>
+                                <th>Знижка</th>
+                                <th>Сума замовлень</th>
+                            </tr>
+                            </thead>
+                            <tbody id="clientsStatsBody"></tbody>
+                            <tfoot>
+                            <tr class="table-info">
+                                <td colspan="5"><strong>Загальна сума:</strong></td>
+                                <td id="totalOrdersSum"><strong>0.00₴</strong></td>
+                            </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="tab-pane fade" id="unclaimed-orders">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                            <tr>
+                                <th>Філія</th>
+                                <th>Тип філії</th>
+                                <th>Головна філія</th>
+                                <th>Клієнт</th>
+                                <th>Телефон</th>
+                                <th>Дата замовлення</th>
+                                <th>Дата завершення</th>
+                                <th>Сума</th>
+                            </tr>
+                            </thead>
+                            <tbody id="unclaimedOrdersBody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="tab-pane fade" id="product-sales">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                            <tr>
+                                <th>Філія</th>
+                                <th>Товар</th>
+                                <th>Категорія</th>
+                                <th>Кількість продажів</th>
+                                <th>Загальна виручка</th>
+                            </tr>
+                            </thead>
+                            <tbody id="productSalesBody">
+                            </tbody>
+                            <tfoot>
+                            <tr class="table-info">
+                                <td colspan="3"><strong>Всього:</strong></td>
+                                <td id="totalQuantity"><strong>0</strong></td>
+                                <td id="totalRevenue"><strong>0.00₴</strong></td>
+                            </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="tab-pane fade" id="suppliers-stats">
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="categoryFilter" class="form-label">Категорія товарів</label>
+                            <select class="form-select" id="categoryFilter">
+                                <option value="">Всі категорії</option>
+                                <option th:each="category : ${T(org.sandopla.photocenter.model.ProductCategory).values()}"
+                                        th:value="${category}" th:text="${category.displayName}"></option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="minDeliveriesFilter" class="form-label">Мінімальна кількість поставок</label>
+                            <input type="number" class="form-control" id="minDeliveriesFilter" min="1">
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <button class="btn btn-primary w-100" onclick="loadSupplierStatistics()">Показати</button>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                            <tr>
+                                <th>Постачальник</th>
+                                <th>Категорія</th>
+                                <th>Кількість товарів</th>
+                                <th>Кількість поставок</th>
+                            </tr>
+                            </thead>
+                            <tbody id="suppliersStatsBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="tab-pane fade" id="popular-products">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                            <tr>
+                                <th>Товар</th>
+                                <th>Постачальник</th>
+                                <th>Кількість продажів</th>
+                                <th>Загальна виручка</th>
+                                <th>Середня кількість на замовлення</th>
+                            </tr>
+                            </thead>
+                            <tbody id="popularProductsBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+
+
+                <!-- Інші вкладки... -->
+            </div>
+        </main>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeDates();
+        loadBranches();
+        setupTabListeners();
+    });
+
+
+
+    function initializeDates() {
+        const today = new Date();
+        const startOfDay = new Date(today);
+        startOfDay.setHours(0, 0, 0, 0);
+        const endOfDay = new Date(today);
+        endOfDay.setHours(23, 59, 59, 999);
+
+        const offset = startOfDay.getTimezoneOffset();
+        const adjustedStartDate = new Date(startOfDay.getTime() - (offset * 60 * 1000));
+        const adjustedEndDate = new Date(endOfDay.getTime() - (offset * 60 * 1000));
+
+        document.getElementById('startDate').value = adjustedStartDate.toISOString().slice(0,16);
+        document.getElementById('endDate').value = adjustedEndDate.toISOString().slice(0,16);
+    }
+
+    function loadBranches() {
+        fetch('/api/branches')
+            .then(response => response.json())
+            .then(branches => {
+                const select = document.getElementById('branchSelect');
+                branches.forEach(branch => {
+                    const option = document.createElement('option');
+                    option.value = branch.id;
+                    option.textContent = branch.name;
+                    select.appendChild(option);
+                });
+            });
+    }
+
+    function setupTabListeners() {
+        const tabs = document.querySelectorAll('[data-bs-toggle="tab"]');
+        tabs.forEach(tab => {
+            tab.addEventListener('shown.bs.tab', function(event) {
+                loadStatisticsForTab(event.target.id);
+            });
+        });
+
+        // Завантажуємо початкову статистику
+        loadPhotoStatistics();
+    }
+
+    function loadStatisticsForTab(tabId) {
+        switch(tabId) {
+            case 'photo-stats-tab':
+                loadPhotoStatistics();
+                break;
+            case 'orders-stats-tab':
+                loadPhotoServicesStatistics();
+                break;
+            case 'orders-stats-general':
+                loadOrdersStatistics();
+                break;
+            case 'clients-stats-tab':
+                console.log("clients-stats-tab");
+                loadClientStatistics();
+                break;
+            case 'unclaimed-orders-tab':
+                loadUnclaimedOrders();
+                break;
+            case 'product-sales-tab':
+                loadProductSales();
+                break;
+            case 'revenue-stats-tab':
+                loadRevenueStatistics();
+                break;
+            case 'service-revenue-tab':
+                loadServiceRevenue();
+                break;
+            case 'popular-products-tab':
+                loadPopularProducts();
+                break;
+
+            // Додайте інші кейси для інших вкладок
+        }
+    }
+
+    function loadPhotoStatistics() {
+        //console.log("loadPhotoStatistics");
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        const branchId = document.getElementById('branchSelect').value;
+
+        const params = new URLSearchParams({
+            startDate: startDate,
+            endDate: endDate
+        });
+        if (branchId) params.append('branchId', branchId);
+
+        fetch(`/api/statistics/photos?${params}`)
+            .then(response => response.json())
+            .then(statistics => {
+                const tbody = document.getElementById('photoStatsBody');
+                tbody.innerHTML = '';
+                statistics.forEach(stat => {
+                    const totalPhotos = stat.regularPhotosCount + stat.urgentPhotosCount + stat.photosWithFramesCount;
+                    tbody.innerHTML += `
+                    <tr>
+                        <td>${stat.branchName}</td>
+                        <td>${stat.regularPhotosCount}</td>
+                        <td>${stat.urgentPhotosCount}</td>
+                        <td>${stat.photosWithFramesCount}</td>
+                        <td>${totalPhotos}</td>
+                    </tr>
+                `;
+                });
+            });
+    }
+
+    function loadPhotoServicesStatistics() {
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        const branchId = document.getElementById('branchSelect').value;
+
+        const params = new URLSearchParams({
+            startDate: startDate,
+            endDate: endDate
+        });
+        if (branchId) params.append('branchId', branchId);
+
+        fetch(`/api/statistics/orders/services?${params}`)
+            .then(response => response.json())
+            .then(statistics => {
+                const tbody = document.getElementById('photoServicesStatsBody');
+                tbody.innerHTML = '';
+
+                let currentBranch = null;
+                statistics.forEach(stat => {
+                    const row = document.createElement('tr');
+
+                    // Якщо це новий філіал, показуємо його назву
+                    if (currentBranch !== stat.branchName) {
+                        row.innerHTML = `
+                        <td>${stat.branchName}</td>
+                        <td>${stat.serviceName}</td>
+                        <td>${stat.regularOrdersCount}</td>
+                        <td>${stat.urgentOrdersCount}</td>
+                        <td>${stat.totalOrdersCount}</td>
+                    `;
+                        currentBranch = stat.branchName;
+                    } else {
+                        // Якщо філіал той самий, показуємо порожню ячейку замість назви
+                        row.innerHTML = `
+                        <td></td>
+                        <td>${stat.serviceName}</td>
+                        <td>${stat.regularOrdersCount}</td>
+                        <td>${stat.urgentOrdersCount}</td>
+                        <td>${stat.totalOrdersCount}</td>
+                    `;
+                    }
+
+                    tbody.appendChild(row);
+                });
+            })
+            .catch(error => {
+                console.error('Error loading photo services statistics:', error);
+                alert('Помилка при завантаженні статистики фоторобіт');
+            });
+    }
+
+    function loadOrdersStatistics() {
+        console.log("loadOrdersStatistics");
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+
+        const params = new URLSearchParams({
+            startDate: startDate,
+            endDate: endDate
+        });
+
+        fetch(`/api/statistics/orders/by-branches?${params}`)
+            .then(response => response.json())
+            .then(statistics => {
+                const tbody = document.getElementById('ordersStatsBody');
+                tbody.innerHTML = '';
+
+                let totalOrders = 0;
+                let currentType = null;
+
+                statistics.forEach(stat => {
+                    const row = document.createElement('tr');
+
+                    // Форматуємо тип філії для відображення
+                    const branchType = formatBranchType(stat.branchType);
+
+                    // Додаємо клас для групування якщо це новий тип
+                    if (currentType !== stat.branchType) {
+                        row.classList.add('table-secondary');
+                        currentType = stat.branchType;
+                    }
+
+                    row.innerHTML = `
+                    <td>${stat.branchName}</td>
+                    <td>${branchType}</td>
+                    <td>${stat.parentBranchName || '-'}</td>
+                    <td>${stat.ordersCount}</td>
+                `;
+
+                    tbody.appendChild(row);
+                    totalOrders += stat.ordersCount;
+                });
+
+                // Оновлюємо загальну кількість
+                document.getElementById('totalOrdersCount').textContent = totalOrders;
+            })
+            .catch(error => {
+                console.error('Error loading orders statistics:', error);
+                alert('Помилка при завантаженні статистики замовлень');
+            });
+    }
+
+    function formatBranchType(type) {
+        switch(type) {
+            case 'MAIN_OFFICE':
+                return 'Головний офіс';
+            case 'BRANCH':
+                return 'Філія';
+            case 'KIOSK':
+                return 'Кіоск';
+            default:
+                return type;
+        }
+    }
+
+    function loadClientStatistics() {
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        const branchId = document.getElementById('branchSelect').value;
+        const minOrderAmount = document.getElementById('minOrderAmount').value;
+        const hasDiscount = document.getElementById('hasDiscount').value;
+
+        const params = new URLSearchParams({
+            startDate: startDate,
+            endDate: endDate,
+            minOrderAmount: minOrderAmount
+        });
+
+        if (branchId) params.append('branchId', branchId);
+        if (hasDiscount) params.append('hasDiscount', hasDiscount);
+
+        fetch(`/api/statistics/clients?${params}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(statistics => {
+                const tbody = document.getElementById('clientsStatsBody');
+                tbody.innerHTML = '';
+
+                let totalSum = 0;
+                let currentBranch = null;
+
+                statistics.forEach(stat => {
+                    const row = document.createElement('tr');
+
+                    // Додаємо клас для групування якщо це нова філія
+                    if (currentBranch !== stat.branchName) {
+                        row.classList.add('table-secondary');
+                        currentBranch = stat.branchName;
+                    }
+
+                    row.innerHTML = `
+                    <td>${stat.branchName || ''}</td>
+                    <td>${stat.clientName || ''}</td>
+                    <td>${stat.phoneNumber || '-'}</td>
+                    <td>${stat.email || '-'}</td>
+                    <td>${stat.discountPercent ? (stat.discountPercent * 100).toFixed(0) + '%' : '-'}</td>
+                    <td>${stat.totalOrdersAmount ? stat.totalOrdersAmount.toFixed(2) + '₴' : '0.00₴'}</td>
+                `;
+
+                    tbody.appendChild(row);
+                    totalSum += parseFloat(stat.totalOrdersAmount || 0);
+                });
+
+                // Оновлюємо загальну суму
+                document.getElementById('totalOrdersSum').innerHTML =
+                    `<strong>${totalSum.toFixed(2)}₴</strong>`;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                const tbody = document.getElementById('clientsStatsBody');
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger">Помилка при завантаженні даних</td></tr>';
+            });
+    }
+
+    // Оновлюємо обробник подій для вкладки статистики клієнтів
+    document.getElementById('clients-stats-tab').addEventListener('shown.bs.tab', function() {
+        loadClientStatistics();
+    });
+
+    // Додаємо обробники подій для фільтрів
+    document.getElementById('minOrderAmount').addEventListener('change', loadClientStatistics);
+    document.getElementById('hasDiscount').addEventListener('change', loadClientStatistics);
+
+
+    // Додаємо обробники подій тільки після завантаження DOM
+    document.addEventListener('DOMContentLoaded', function() {
+        const minOrderAmountElement = document.getElementById('minOrderAmount');
+        const hasDiscountElement = document.getElementById('hasDiscount');
+
+        if (minOrderAmountElement) {
+            minOrderAmountElement.addEventListener('change', loadClientStatistics);
+        }
+
+        if (hasDiscountElement) {
+            hasDiscountElement.addEventListener('change', loadClientStatistics);
+        }
+    });
+
+    // Додаємо функцію завантаження незабраних замовлень
+    function loadUnclaimedOrders() {
+        const branchId = document.getElementById('branchSelect').value;
+
+        const params = new URLSearchParams();
+        if (branchId) {
+            params.append('branchId', branchId);
+        }
+
+        fetch(`/admin/global-statistics/api/unclaimed-orders?${params}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Received data:', data); // Додамо для дебагу
+                const tbody = document.getElementById('unclaimedOrdersBody');
+                tbody.innerHTML = '';
+
+                let currentType = null;
+
+                data.forEach(order => {
+                    const row = document.createElement('tr');
+
+                    // Додаємо клас для групування якщо це новий тип філії
+                    if (currentType !== order.branchType) {
+                        row.classList.add('table-secondary');
+                        currentType = order.branchType;
+                    }
+
+                    // Перевіряємо чи існують дати перед форматуванням
+                    const orderDate = order.orderDate ? new Date(order.orderDate).toLocaleString('uk-UA') : '-';
+                    const completionDate = order.completionDate ? new Date(order.completionDate).toLocaleString('uk-UA') : '-';
+
+                    row.innerHTML = `
+                    <td>${order.branchName || '-'}</td>
+                    <td>${order.branchType || '-'}</td>
+                    <td>${order.parentBranchName || '-'}</td>
+                    <td>${order.clientName || '-'}</td>
+                    <td>${order.clientPhone || '-'}</td>
+                    <td>${orderDate}</td>
+                    <td>${completionDate}</td>
+                    <td>${order.totalCost ? order.totalCost.toFixed(2) + '₴' : '-'}</td>
+                `;
+
+                    tbody.appendChild(row);
+                });
+            })
+            .catch(error => {
+                console.error('Error:', error); // Розширений лог помилки
+                alert('Помилка при завантаженні даних про незабрані замовлення: ' + error.message);
+            });
+    }
+
+
+    function loadProductSales() {
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        const branchId = document.getElementById('branchSelect').value;
+
+        const params = new URLSearchParams({
+            startDate: startDate,
+            endDate: endDate
+        });
+        if (branchId) {
+            params.append('branchId', branchId);
+        }
+
+        fetch(`/api/statistics/sales/products?${params}`)
+            .then(response => response.json())
+            .then(statistics => {
+                const tbody = document.getElementById('productSalesBody');
+                tbody.innerHTML = '';
+
+                let totalQuantity = 0;
+                let totalRevenue = 0;
+                let currentBranch = null;
+
+                statistics.forEach(stat => {
+                    const row = document.createElement('tr');
+
+                    // Показуємо назву філії тільки коли вона змінюється
+                    if (currentBranch !== stat.branchName) {
+                        currentBranch = stat.branchName;
+                        row.innerHTML = `
+                        <td>${stat.branchName}</td>
+                        <td>${stat.productName}</td>
+                        <td>${stat.category}</td>
+                        <td>${stat.quantitySold}</td>
+                        <td>${stat.totalRevenue.toFixed(2)}₴</td>
+                    `;
+                    } else {
+                        row.innerHTML = `
+                        <td></td>
+                        <td>${stat.productName}</td>
+                        <td>${stat.category}</td>
+                        <td>${stat.quantitySold}</td>
+                        <td>${stat.totalRevenue.toFixed(2)}₴</td>
+                    `;
+                    }
+
+                    tbody.appendChild(row);
+                    totalQuantity += stat.quantitySold;
+                    totalRevenue += stat.totalRevenue;
+                });
+
+                // Оновлюємо підсумки
+                document.getElementById('totalQuantity').textContent = totalQuantity;
+                document.getElementById('totalRevenue').textContent = `${totalRevenue.toFixed(2)}₴`;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Помилка при завантаженні статистики продажів');
+            });
+    }
+
+    function loadSupplierStatistics() {
+        const category = document.getElementById('categoryFilter').value;
+        const minDeliveries = document.getElementById('minDeliveriesFilter').value;
+
+        const params = new URLSearchParams();
+        if (category) params.append('category', category);
+        if (minDeliveries) params.append('minDeliveries', minDeliveries);
+
+        fetch(`/api/suppliers/stats?${params}`)
+            .then(response => response.json())
+            .then(data => {
+                const tbody = document.getElementById('suppliersStatsBody');
+                tbody.innerHTML = '';
+
+                data.forEach(item => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                    <td>${item.supplierName}</td>
+                    <td>${item.category}</td>
+                    <td>${item.totalQuantity}</td>
+                    <td>${item.totalDeliveries}</td>
+                `;
+                    tbody.appendChild(row);
+                });
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Помилка при завантаженні статистики постачальників');
+            });
+    }
+
+
+    function loadRevenueStatistics() {
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        const branchId = document.getElementById('branchSelect').value;
+
+        const params = new URLSearchParams({
+            startDate: startDate,
+            endDate: endDate
+        });
+        if (branchId) params.append('branchId', branchId);
+
+        fetch(`/api/statistics/sales/revenue?${params}`)
+            .then(response => response.json())
+            .then(statistics => {
+                const tbody = document.getElementById('revenueStatsBody');
+                tbody.innerHTML = '';
+
+                let totalRevenue = 0;
+                let totalCost = 0;
+                let totalProfit = 0;
+
+                statistics.forEach(stat => {
+                    const row = document.createElement('tr');
+                    const revenue = parseFloat(stat.totalRevenue);
+                    const cost = parseFloat(stat.totalCost);
+                    const profit = parseFloat(stat.profit);
+
+                    row.innerHTML = `
+                    <td>${stat.branchName}</td>
+                    <td>${revenue.toFixed(2)}₴</td>
+                    <td>${cost.toFixed(2)}₴</td>
+                    <td class="${profit >= 0 ? 'text-success' : 'text-danger'}">
+                        ${profit.toFixed(2)}₴
+                    </td>
+                `;
+                    tbody.appendChild(row);
+
+                    totalRevenue += revenue;
+                    totalCost += cost;
+                    totalProfit += profit;
+                });
+
+                // Оновлюємо підсумки
+                document.getElementById('totalRevenueStat').innerHTML =
+                    `<strong>${totalRevenue.toFixed(2)}₴</strong>`;
+                document.getElementById('totalCostStat').innerHTML =
+                    `<strong>${totalCost.toFixed(2)}₴</strong>`;
+                document.getElementById('totalProfitStat').innerHTML =
+                    `<strong class="${totalProfit >= 0 ? 'text-success' : 'text-danger'}">
+                    ${totalProfit.toFixed(2)}₴
+                </strong>`;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Помилка при завантаженні статистики виручки');
+            });
+    }
+
+    function loadServiceRevenue() {
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        const branchId = document.getElementById('branchSelect').value;
+
+        const params = new URLSearchParams({
+            startDate: startDate,
+            endDate: endDate
+        });
+        if (branchId) params.append('branchId', branchId);
+
+        fetch(`/api/statistics/orders/service-revenue?${params}`)
+            .then(response => response.json())
+            .then(statistics => {
+                const tbody = document.getElementById('serviceRevenueBody');
+                tbody.innerHTML = '';
+
+                let totalRegular = 0;
+                let totalUrgent = 0;
+                let totalRevenue = 0;
+                let currentBranch = null;
+
+                statistics.forEach(stat => {
+                    const row = document.createElement('tr');
+
+                    // Show branch name only when it changes
+                    if (currentBranch !== stat.branchName) {
+                        currentBranch = stat.branchName;
+                        row.innerHTML = `
+                        <td>${stat.branchName}</td>
+                        <td>${stat.serviceName}</td>
+                        <td>${stat.regularOrdersRevenue.toFixed(2)}₴</td>
+                        <td>${stat.urgentOrdersRevenue.toFixed(2)}₴</td>
+                        <td>${stat.totalRevenue.toFixed(2)}₴</td>
+                    `;
+                    } else {
+                        row.innerHTML = `
+                        <td></td>
+                        <td>${stat.serviceName}</td>
+                        <td>${stat.regularOrdersRevenue.toFixed(2)}₴</td>
+                        <td>${stat.urgentOrdersRevenue.toFixed(2)}₴</td>
+                        <td>${stat.totalRevenue.toFixed(2)}₴</td>
+                    `;
+                    }
+
+                    tbody.appendChild(row);
+
+                    totalRegular += parseFloat(stat.regularOrdersRevenue);
+                    totalUrgent += parseFloat(stat.urgentOrdersRevenue);
+                    totalRevenue += parseFloat(stat.totalRevenue);
+                });
+
+                // Update totals
+                document.getElementById('totalRegularRevenue').innerHTML =
+                    `<strong>${totalRegular.toFixed(2)}₴</strong>`;
+                document.getElementById('totalUrgentRevenue').innerHTML =
+                    `<strong>${totalUrgent.toFixed(2)}₴</strong>`;
+                document.getElementById('totalServiceRevenue').innerHTML =
+                    `<strong>${totalRevenue.toFixed(2)}₴</strong>`;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Помилка при завантаженні статистики виручки з послуг');
+            });
+    }
+
+    function loadPopularProducts() {
+        const branchId = document.getElementById('branchSelect').value;
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+
+        const params = new URLSearchParams();
+        if (branchId) params.append('branchId', branchId);
+        if (startDate) params.append('startDate', startDate);
+        if (endDate) params.append('endDate', endDate);
+
+        fetch(`/api/statistics/products/popular?${params}`)
+            .then(response => response.json())
+            .then(products => {
+                const tbody = document.getElementById('popularProductsBody');
+                tbody.innerHTML = '';
+
+                products.sort((a, b) => {
+                    if (b.salesCount === a.salesCount) {
+                        return b.totalProfit - a.totalProfit;
+                    }
+                    return b.salesCount - a.salesCount;
+                });
+
+                products.forEach((product, index) => {
+                    const row = document.createElement('tr');
+                    if (index < 3) {
+                        row.classList.add('table-success');
+                    }
+
+                    row.innerHTML = `
+                    <td>${product.productName || '-'}</td>
+                    <td>${product.supplierName || '-'}</td>
+                    <td>${product.salesCount || 0}</td>
+                    <td>${product.totalProfit.toFixed(2)}₴</td>
+                    <td>${product.averageQuantityPerOrder.toFixed(2)}</td>
+                `;
+                    tbody.appendChild(row);
+                });
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Помилка при завантаженні популярних товарів');
+            });
+    }
+
+    // Додати обробники для дат
+    document.getElementById('startDate').addEventListener('change', loadPopularProducts);
+    document.getElementById('endDate').addEventListener('change', loadPopularProducts);
+
+
+
+
+
+
+
+
+
+    // Оновлений обробник для всіх вкладок
+    document.getElementById('branchSelect').addEventListener('change', () => {
+        const activeTab = document.querySelector('.nav-link.active');
+        switch(activeTab.id) {
+            case 'photo-stats-tab':
+                loadPhotoStatistics();
+                break;
+            case 'orders-stats-tab':
+                loadPhotoServicesStatistics();
+                break;
+            case 'revenue-stats-tab':
+                loadRevenueStatistics();
+                break;
+            case 'orders-stats-general':
+                loadOrdersStatistics();
+                break;
+            case 'clients-stats-tab':
+                loadClientStatistics();
+                break;
+            case 'unclaimed-orders-tab':
+                loadUnclaimedOrders();
+                break;
+            case 'product-sales-tab':
+                loadProductSales();
+                break;
+            case 'popular-products-tab':
+                loadPopularProducts();
+                break;
+            case 'service-revenue-tab':
+                loadServiceRevenue();
+                break;
+            case 'suppliers-stats-tab':
+                loadSupplierStatistics();
+                break;
+        }
+    });
+
+
+
+</script>
+</body>
+</html>

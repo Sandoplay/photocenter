@@ -32,3 +32,7 @@ build/
 ### VS Code ###
 .vscode/
 /src/main/resources/static/favicon.ico
+/src/merged_source_code.txt
+/src/mergeJavasrc_put-in-scr-folder.ps1
+/src/project_structure.ps1
+/src/ProjectStructure.txt
