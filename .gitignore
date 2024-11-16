@@ -36,3 +36,5 @@ build/
 /src/mergeJavasrc_put-in-scr-folder.ps1
 /src/project_structure.ps1
 /src/ProjectStructure.txt
+/src/merge_by_names.ps1
+/src/source_files.txt
